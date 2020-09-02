@@ -1,0 +1,66 @@
+<resources>
+    <string name="app_name">DatingApp</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="processing">処理中…</string>
+    <string name="signin">サインイン</string>
+    <string name="signup">サインアップ</string>
+    <string name="welcome">ようこそ！</string>
+    <string name="error_empty_email">メールアドレスを入力してください</string>
+    <string name="error_invalid_email">正しい形式で入力してください</string>
+    <string name="error_password">パスワードは6文字以上です</string>
+    <string name="error_password_re">パスワードが一致しません</string>
+    <string name="save">更新</string>
+    <string name="add">登録</string>
+    <string name="complete_save">プロフィールを更新しました！</string>
+    <string name="logout">ログアウト</string>
+    <string name="fb_sign_in_text">Facebookでサインイン</string>
+    <string name="fb_sign_up_text">Facebookでサインアップ</string>
+    <string name="man">男性</string>
+    <string name="woman">女性</string>
+    <string name="facebook_app_id">313003166612507</string>
+    <string name="fb_login_protocol_scheme">fb313003166612507</string>
+    <string name="fb_fail">友達は10人以上いなければなりません。</string>
+    <string name="signup_fail">登録できませんでした。</string>
+    <string name="signin_fail">ログインに失敗しました。</string>
+    <string name="user_none">ユーザー情報がありません。</string>
+    <string name="already_exists">すでに存在するユーザーです。</string>
+    <string name="error">エラーが発生しました。もう一度やり直してください。</string>
+    <string name="no_user">ユーザーデータがありません。</string>
+    <string name="not_allowed">18歳未満の方は登録できません。</string>
+    <string name="bad_formatted">フォーマットが正しくありません。</string>
+    <string name="good">いいね！</string>
+    <string name="bad">ごめんね。。</string>
+    <string name="match_found">マッチングしました！</string>
+    <string name="no_hobby">趣味がありません。</string>
+    <string name="no_lang">言語がありません。</string>
+    <string name="today">今日</string>
+    <string name="yesterday">昨日</string>
+    <string-array name="address_list">
+        <item>Apple</item>
+        <item>Banana</item>
+        <item>Carrot</item>
+        <item>Apple</item>
+        <item>Banana</item>
+        <item>Carrot</item>
+        <item>Apple</item>
+        <item>Banana</item>
+        <item>Carrot</item>
+        <item>Apple</item>
+        <item>Banana</item>
+        <item>Carrot</item>
+        <item>Apple</item>
+        <item>Banana</item>
+        <item>Carrot</item>
+        <item>Apple</item>
+        <item>Banana</item>
+        <item>Carrot</item>
+        <item>Apple</item>
+        <item>Banana</item>
+        <item>Carrot</item>
+        <item>Apple</item>
+        <item>Banana</item>
+        <item>Carrot</item>
+    </string-array>
+</resources>

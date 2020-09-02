@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.facebook.login.widget.LoginButton
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/login_button"
+    android:layout_width="250dp"
+    android:layout_height="wrap_content"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp" />

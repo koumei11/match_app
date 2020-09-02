@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/colorPrimary"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/message_date_receiver"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/date_bg_rounded"
+        android:gravity="center_horizontal"
+        android:padding="5dp"
+        android:text="日付"
+        android:textAlignment="center"
+        android:textColor="@color/colorWhite"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/chat_image_circle_receiver"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginRight="7dp"
+            android:background="@color/colorPrimary"
+            android:src="@drawable/avatornew" />
+
+        <TextView
+            android:id="@+id/receiver_id"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/receiver_bg"
+            android:maxWidth="200dp"
+            android:padding="10dp"
+            android:text="Text value"
+            android:textColor="#000000" />
+
+        <TextView
+            android:id="@+id/receive_datetime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_weight="1"
+            android:paddingLeft="5dp"
+            android:text="時間"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>
