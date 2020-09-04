@@ -27,6 +27,12 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
@@ -79,16 +85,6 @@ public class ProfileFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
 
-        final Handler refreshHandler = new Handler();
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                // do updates for imageview
-                refreshHandler.postDelayed(this, 30 * 1000);
-            }
-        };
-        refreshHandler.postDelayed(runnable, 30 * 1000);
-
         View view = inflater.inflate(R.layout.fragment_profile, container, false);
         CloseKeyboard.setupUI(view.findViewById(R.id.constraint_profile), getActivity());
 
@@ -129,12 +125,22 @@ public class ProfileFragment extends Fragment {
             public void onClick(View view) {
                 LogoutProgressButton button = new LogoutProgressButton(view);
                 button.buttonActivated();
-                FirebaseAuth.getInstance().signOut();
+                final FirebaseDatabase database = FirebaseDatabase.getInstance();
+                final DatabaseReference myRef = database.getReference("/status/" + mAuth.getCurrentUser().getUid());
 
+                Map<String, Object> isOfflineForDatabase = new HashMap<>();
+                isOfflineForDatabase.put("state", "offline");
+                isOfflineForDatabase.put("last_changed", ServerValue.TIMESTAMP);
+
+                myRef.setValue(isOfflineForDatabase);
+
+                FirebaseAuth.getInstance().signOut();
                 LoginManager.getInstance().logOut();
+
                 Intent intent = new Intent(getContext(), MainActivity.class);
                 startActivity(intent);
                 getActivity().finish();
+
                 Toast.makeText(getContext(), "ログアウトしました", Toast.LENGTH_SHORT).show();
                 button.buttonFinished();
             }

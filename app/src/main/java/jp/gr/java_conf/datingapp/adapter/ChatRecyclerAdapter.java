@@ -35,7 +35,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     private FirebaseAuth mAuth;
     private SimpleDateFormat sdFormat1 = new SimpleDateFormat("M/d");
     private SimpleDateFormat sdFormat2 = new SimpleDateFormat("yyyy/M/d");
-    private SimpleDateFormat sdFormat3 = new SimpleDateFormat("HH:mm");
+    private SimpleDateFormat sdFormat3 = new SimpleDateFormat("H:mm");
 
     private Set<Integer> positionSet = new HashSet<>();
 
@@ -63,7 +63,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         Calendar calendarNow = Calendar.getInstance();
-        java.sql.Date theDay = new java.sql.Date(mChatList.get(position).getTime_stamp().toDate().getTime());
+        java.sql.Date theDay = new java.sql.Date(mChatList.get(position).getTime_stamp());
         java.sql.Date today = new java.sql.Date(new Date().getTime());
         java.sql.Date yesterday = new java.sql.Date(new Date().getTime() - (1000 * 60 * 60 * 24));
         boolean isToday = theDay.toString().equals(today.toString());
@@ -71,8 +71,14 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 //        System.out.println(mChatList.get(position).isFirstMessageOfTheDay());
         if (holder.getItemViewType() == 0) {
             SenderViewHolder senderViewHolder = (SenderViewHolder) holder;
+            if (mChatList.get(position).isSeen()) {
+                senderViewHolder.seen.setVisibility(View.VISIBLE);
+                senderViewHolder.seen.setText(mContext.getString(R.string.seen));
+            } else {
+                senderViewHolder.seen.setVisibility(View.GONE);
+            }
             senderViewHolder.mMessage.setText(mChatList.get(position).getMessage());
-            senderViewHolder.messageDate.setText(sdFormat3.format(mChatList.get(position).getTime_stamp().toDate()));
+            senderViewHolder.messageDate.setText(sdFormat3.format(new Date(mChatList.get(position).getTime_stamp())));
             if (mChatList.get(position).isFirstMessageOfTheDay()) {
                 if (isToday) {
                     senderViewHolder.sentDate.setVisibility(View.VISIBLE);
@@ -82,18 +88,18 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     senderViewHolder.sentDate.setText(mContext.getString(R.string.yesterday));
                 } else {
                     Calendar calendarSent = Calendar.getInstance();
-                    calendarSent.setTime(mChatList.get(position).getTime_stamp().toDate());
+                    calendarSent.setTime(new Date(mChatList.get(position).getTime_stamp()));
                     calendarNow.setTime(new Date());
                     int sentYear = calendarSent.get(Calendar.YEAR);
                     int thisYear = calendarNow.get(Calendar.YEAR);
                     senderViewHolder.sentDate.setVisibility(View.VISIBLE);
-                    String dayOfWeek = WeekDayConverter.convertWeek(mChatList.get(position).getTime_stamp().toDate());
+                    String dayOfWeek = WeekDayConverter.convertWeek(new Date(mChatList.get(position).getTime_stamp()));
                     String displayString;
                     if (sentYear == thisYear) {
-                        displayString = sdFormat1.format(mChatList.get(position).getTime_stamp().toDate()) + "（" + dayOfWeek + "）";
+                        displayString = sdFormat1.format(new Date(mChatList.get(position).getTime_stamp())) + "（" + dayOfWeek + "）";
                         senderViewHolder.sentDate.setText(displayString);
                     } else {
-                        displayString = sdFormat2.format(mChatList.get(position).getTime_stamp().toDate()) + "（" + dayOfWeek + "）";
+                        displayString = sdFormat2.format(new Date(mChatList.get(position).getTime_stamp())) + "（" + dayOfWeek + "）";
                         senderViewHolder.sentDate.setText(displayString);
                     }
                 }
@@ -103,13 +109,11 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         } else {
             ReceiverViewHolder receiverViewHolder = (ReceiverViewHolder) holder;
             receiverViewHolder.mMessage.setText(mChatList.get(position).getMessage());
-            receiverViewHolder.messageDate.setText(sdFormat3.format(mChatList.get(position).getTime_stamp().toDate()));
+            receiverViewHolder.messageDate.setText(sdFormat3.format(new Date(mChatList.get(position).getTime_stamp())));
             if (mChatList.get(position).getMy_img() != null && !mChatList.get(position).getMy_img().equals("")) {
                 Uri url = Uri.parse(mChatList.get(position).getMy_img());
                 Glide.with(mContext).load(url).into(receiverViewHolder.mImageView);
             }
-//            System.out.println(mChatList.get(position).isFirstMessageOfTheDay());
-//            System.out.println(mChatList.get(position).getMessage());
             if (mChatList.get(position).isFirstMessageOfTheDay()) {
                 if (isToday) {
                     receiverViewHolder.sentDate.setVisibility(View.VISIBLE);
@@ -119,18 +123,18 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     receiverViewHolder.sentDate.setText(mContext.getString(R.string.yesterday));
                 } else {
                     Calendar calendarSent = Calendar.getInstance();
-                    calendarSent.setTime(mChatList.get(position).getTime_stamp().toDate());
+                    calendarSent.setTime(new Date(mChatList.get(position).getTime_stamp()));
                     calendarNow.setTime(new Date());
                     int sentYear = calendarSent.get(Calendar.YEAR);
                     int thisYear = calendarNow.get(Calendar.YEAR);
                     receiverViewHolder.sentDate.setVisibility(View.VISIBLE);
-                    String dayOfWeek = WeekDayConverter.convertWeek(mChatList.get(position).getTime_stamp().toDate());
+                    String dayOfWeek = WeekDayConverter.convertWeek(new Date(mChatList.get(position).getTime_stamp()));
                     String displayString;
                     if (sentYear == thisYear) {
-                        displayString = sdFormat1.format(mChatList.get(position).getTime_stamp().toDate()) + "（" + dayOfWeek + "）";
+                        displayString = sdFormat1.format(new Date(mChatList.get(position).getTime_stamp())) + "（" + dayOfWeek + "）";
                         receiverViewHolder.sentDate.setText(displayString);
                     } else {
-                        displayString = sdFormat2.format(mChatList.get(position).getTime_stamp().toDate()) + "（" + dayOfWeek + "）";
+                        displayString = sdFormat2.format(new Date(mChatList.get(position).getTime_stamp())) + "（" + dayOfWeek + "）";
                         receiverViewHolder.sentDate.setText(displayString);
                     }
                 }
@@ -173,11 +177,13 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         private TextView mMessage;
         private TextView sentDate;
         private TextView messageDate;
+        private TextView seen;
         public SenderViewHolder(@NonNull View itemView) {
             super(itemView);
             mMessage = itemView.findViewById(R.id.sender_id);
             sentDate = itemView.findViewById(R.id.message_date_sender);
             messageDate = itemView.findViewById(R.id.send_datetime);
+            seen = itemView.findViewById(R.id.seen);
         }
     }
 

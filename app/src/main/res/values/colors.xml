@@ -9,8 +9,11 @@
     <color name="colorGrey">#727272</color>
     <color name="colorLightBlue">#2eb4ce</color>
     <color name="colorLightRed">#df8a83</color>
+    <color name="colorLightGrey">#b2b2b2</color>
     <color name="chipColor">#23374f</color>
     <color name="colorFBbutton">#0095ff</color>
     <color name="colorRadioButton">#e75748</color>
     <color name="colorMessage">#52D5DE</color>
+    <color name="colorYellow">#FFFB32</color>
+    <color name="colorGreen">#05df29</color>
 </resources>

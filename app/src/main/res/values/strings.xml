@@ -37,6 +37,7 @@
     <string name="no_lang">言語がありません。</string>
     <string name="today">今日</string>
     <string name="yesterday">昨日</string>
+    <string name="seen">既読</string>
     <string-array name="address_list">
         <item>Apple</item>
         <item>Banana</item>

@@ -1,24 +1,32 @@
 package jp.gr.java_conf.datingapp.utility;
 
-import com.google.firebase.Timestamp;
-
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 public class DateTimeConverter {
-    public static String getSentTime(Timestamp time_stamp) {
+    public static String getSentTime(long time_stamp) {
         // 日付
+        Date date = new Date(time_stamp);
+        Date sentDate = new Date(time_stamp);
+        java.sql.Date theDay = new java.sql.Date(time_stamp);
+        java.sql.Date today = new java.sql.Date(new Date().getTime());
+        java.sql.Date yesterday = new java.sql.Date(new Date().getTime() - (1000 * 60 * 60 * 24));
+        Calendar calendarNow = Calendar.getInstance();
+        calendarNow.setTime(new Date());
+        int thisYear = calendarNow.get(Calendar.YEAR);
+        Calendar calendarThen = Calendar.getInstance();
+        calendarThen.setTime(new Date(time_stamp));
+        int then = calendarThen.get(Calendar.YEAR);
 
-        Date now = new Date();
-        long mill = now.getTime() - time_stamp.getSeconds() * 1000;
-        long second = mill / 1000;
-        if (second / 60 < 60) {
-            return second / 60 + "分前";
-        } else if (second / 60 / 60 < 24) {
-            return second / 60 / 60 + "時間前";
+        if (theDay.toString().equals(today.toString())) {
+            return new SimpleDateFormat("H:mm").format(date);
+        } else if (theDay.toString().equals(yesterday.toString())) {
+            return "昨日";
+        } else if (thisYear == then){
+            return new SimpleDateFormat("M/d").format(sentDate);
         } else {
-            Date sentDate = new Date(time_stamp.getSeconds() * 1000);
-            return new SimpleDateFormat("yyyy/MM/dd").format(sentDate);
+            return new SimpleDateFormat("yyyy/M/d").format(sentDate);
         }
     }
 }

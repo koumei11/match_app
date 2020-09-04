@@ -30,17 +30,37 @@
         android:orientation="horizontal"
         android:padding="10dp">
 
-        <TextView
-            android:id="@+id/send_datetime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:textAlignment="textEnd"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:paddingRight="5dp"
-            android:text="時間"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/seen"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="bottom|end"
+                android:paddingRight="5dp"
+                android:text="既読"
+                android:visibility="gone"
+                android:textAlignment="textEnd"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/send_datetime"
+                android:layout_width="match_parent"
+                android:layout_height="7dp"
+                android:layout_weight="1"
+                android:gravity="bottom|end"
+                android:paddingRight="5dp"
+                android:text="時間"
+                android:textAlignment="textEnd"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/sender_id"

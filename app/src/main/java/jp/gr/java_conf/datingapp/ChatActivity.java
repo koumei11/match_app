@@ -8,7 +8,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -30,9 +29,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentChange;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -64,14 +68,15 @@ public class ChatActivity extends AppCompatActivity {
     private ImageButton mLibrary;
     private EditText mChatText;
     private ImageView mSend;
+    private DatabaseReference reference;
     String toId = "";
     String imgUrl = "";
     String userName = "";
     String myImg = "";
     private ChatRecyclerAdapter mChatRecyclerAdapter;
+    private ValueEventListener seenListener;
     List<Chat> mChatList;
     View view;
-    TextView newestMessage;
     Profile userProfile;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -103,26 +108,13 @@ public class ChatActivity extends AppCompatActivity {
         mSend = findViewById(R.id.chat_btn);
         mAuth = FirebaseAuth.getInstance();
         mStore = FirebaseFirestore.getInstance();
-        mChatList = new ArrayList<>();
-        mChatRecyclerView.setHasFixedSize(true);
-        mChatRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        reference = FirebaseDatabase.getInstance().getReference();
         toId = getIntent().getStringExtra("doc_id");
         imgUrl = getIntent().getStringExtra("user_img");
         userName = getIntent().getStringExtra("user_name");
         userProfile = (Profile) getIntent().getSerializableExtra("profile");
-        mChatRecyclerAdapter = new ChatRecyclerAdapter(this, mChatList);
-
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View matchView = inflater.inflate(R.layout.single_match_user_item, null);
-        newestMessage = matchView.findViewById(R.id.newest_message);
-
-        mChatRecyclerView.setAdapter(mChatRecyclerAdapter);
-        mChatRecyclerView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                System.out.println("Click");
-            }
-        });
+        mChatList = new ArrayList<>();
+        mChatRecyclerAdapter = new ChatRecyclerAdapter(ChatActivity.this, mChatList);
 
         final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setStackFromEnd(true);
@@ -208,71 +200,100 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-        mStore.collection("Message").orderBy("time_stamp", Query.Direction.ASCENDING).addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException error) {
-                for (DocumentChange doc : queryDocumentSnapshots.getDocumentChanges()) {
-                    DocumentSnapshot snapshot = doc.getDocument();
-                    Chat chat = snapshot.toObject(Chat.class);
-                    if (snapshot.getData() != null) {
-                        chat.setFirstMessageOfTheDay((boolean) snapshot.getData().get("isFirstMessageOfTheDay"));
-                    }
-                    if ((chat.getFrom().equals(mAuth.getCurrentUser().getUid()) || chat.getFrom().equals(toId)) &&
-                            (chat.getTo().equals(mAuth.getCurrentUser().getUid()) || chat.getTo().equals(toId))) {
-                        chat.setProfile(userProfile);
-                        mChatList.add(chat);
-                        newestMessage.setText(chat.getMessage());
-                        mChatRecyclerAdapter.notifyDataSetChanged();
-                    }
-                }
-            }
-        });
+        readMessage(toId, userProfile);
+        seenMessage(toId);
 
         mSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (!mChatText.getText().toString().isEmpty()) {
-
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("message", mChatText.getText().toString());
-                    map.put("my_img", myImg);
-                    map.put("from", mAuth.getCurrentUser().getUid());
-                    map.put("to", toId);
-                    map.put("time_stamp", new Date());
-                    if (mChatList.size() > 0) {
-                        java.sql.Date date1 = new java.sql.Date(mChatList.get(mChatList.size() - 1).getTime_stamp().toDate().getTime());
-                        java.sql.Date date2 = new java.sql.Date(((Date) map.get("time_stamp")).getTime());
-                        if (date2.toString().equals(date1.toString())) {
-                            map.put("isFirstMessageOfTheDay", false);
-                        } else {
-                            map.put("isFirstMessageOfTheDay", true);
-                        }
-                    } else {
-                        map.put("isFirstMessageOfTheDay", true);
-                    }
-                    mStore.collection("Message").add(map).addOnCompleteListener(new OnCompleteListener<DocumentReference>() {
-                        @Override
-                        public void onComplete(@NonNull Task<DocumentReference> task) {
-                            if (task.isSuccessful()) {
-                                mChatText.setText("");
-                                mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
-                            }
-                        }
-                    });
+                    sendMessage(mChatText.getText().toString(), myImg, mAuth.getCurrentUser().getUid(), toId);
                 }
             }
         });
-
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+    private void seenMessage(final String userId) {
+        reference = FirebaseDatabase.getInstance().getReference("Chats");
+        seenListener = reference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    Chat chat = snapshot.getValue(Chat.class);
+                    if (chat.getTo().equals(mAuth.getCurrentUser().getUid()) && chat.getFrom().equals(userId)) {
+                        HashMap<String, Object> hashMap = new HashMap<>();
+                        hashMap.put("isSeen", true);
+                        snapshot.getRef().updateChildren(hashMap);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
+    private void readMessage(String toId, Profile profile) {
+
+        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Chats");
+
+        reference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                mChatList.clear();
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    System.out.println();
+                    Chat chat = snapshot.getValue(Chat.class);
+                    if (chat != null) {
+                        if ((chat.getFrom().equals(mAuth.getCurrentUser().getUid()) || chat.getFrom().equals(toId)) &&
+                                (chat.getTo().equals(mAuth.getCurrentUser().getUid()) || chat.getTo().equals(toId))) {
+                            // isFirstMessageOfTheDayのみ上手くマッピングできないため
+                            chat.setFirstMessageOfTheDay((Boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
+                            chat.setSeen((Boolean) snapshot.child("isSeen").getValue());
+                            chat.setProfile(profile);
+                            mChatList.add(chat);
+                        }
+
+                        mChatRecyclerView.setAdapter(mChatRecyclerAdapter);
+                        mChatRecyclerAdapter.notifyDataSetChanged();
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    private void sendMessage(String message, String image, String myId, String toId) {
+        mChatText.setText("");
+        Map<String, Object> map = new HashMap<>();
+        DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
+
+        map.put("message", message);
+        map.put("my_img", image);
+        map.put("from", myId);
+        map.put("to", toId);
+        map.put("isSeen", false);
+        map.put("time_stamp", new Date().getTime());
+        if (mChatList.size() > 0) {
+            java.sql.Date date1 = new java.sql.Date(mChatList.get(mChatList.size() - 1).getTime_stamp());
+            java.sql.Date date2 = new java.sql.Date((Long) map.get("time_stamp"));
+            if (date2.toString().equals(date1.toString())) {
+                map.put("isFirstMessageOfTheDay", false);
+            } else {
+                map.put("isFirstMessageOfTheDay", true);
+            }
+        } else {
+            map.put("isFirstMessageOfTheDay", true);
+        }
+        System.out.println(mChatRecyclerAdapter);
+        mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
+        reference.child("Chats").push().setValue(map);
     }
 
     @Override
@@ -294,5 +315,11 @@ public class ChatActivity extends AppCompatActivity {
             InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        reference.removeEventListener(seenListener);
     }
 }

@@ -2,6 +2,7 @@ package jp.gr.java_conf.datingapp;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -51,6 +52,9 @@ public class MainActivity extends AppCompatActivity {
 
     private ViewPager mViewPager;
     private TabLayout mTabs;
+    private int mTabPositionInt;
+    private SharedPreferences mTabPosition;
+    private SharedPreferences.Editor mPositionEditor;
     private ViewPagerAdapter adapter;
     private FirebaseAuth mAuth;
     private FirebaseFirestore mStore;
@@ -66,6 +70,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mContext = this;
+        mTabPosition = getSharedPreferences("Data", MODE_PRIVATE);
+        mPositionEditor = mTabPosition.edit();
+        mPositionEditor.putInt("position", 10);
+        mPositionEditor.apply();
 
         mCallbackManager = CallbackManager.Factory.create();
         LayoutInflater inflater = LayoutInflater.from(this);
@@ -105,6 +113,29 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        int position = mTabPosition.getInt("position", -1);
+        System.out.println(position);
+        if (mTabs.getTabAt(0) != null && mTabs.getTabAt(1) != null) {
+            if (position == 0) {
+                mTabs.getTabAt(0).select();
+            } else if (position == 1) {
+                mTabs.getTabAt(1).select();
+            } else {
+                mTabs.getTabAt(0).select();
+            }
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mPositionEditor.putInt("position", mTabPositionInt);
+        mPositionEditor.commit();
+    }
+
     public void firebaseAuthWithFacebook(final AccessToken accessToken) {
         GraphRequest request = GraphRequest.newGraphPathRequest(
                 accessToken,
@@ -125,7 +156,6 @@ public class MainActivity extends AppCompatActivity {
                                             // Insert your code here
                                             try {
                                                 int numFriends = (int)response.getJSONObject().getJSONObject("summary").get("total_count");
-                                                System.out.println("SignIn");
                                                 if (numFriends >= 10) {
                                                     AuthCredential credential = FacebookAuthProvider.getCredential(accessToken.getToken());
                                                     mAuth.signInWithCredential(credential)
@@ -225,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
             mTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
                 @Override
                 public void onTabSelected(TabLayout.Tab tab) {
-
+                    mTabPositionInt = tab.getPosition();
                 }
 
                 @Override
@@ -235,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onTabReselected(TabLayout.Tab tab) {
-
+                    System.out.println(tab);
                 }
             });
         }

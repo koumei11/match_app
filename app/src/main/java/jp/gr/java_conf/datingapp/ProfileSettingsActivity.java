@@ -180,7 +180,6 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                                         map.put("address", mAddress.getText().toString());
                                         map.put("job", mJob.getText().toString());
                                         saveUserData(map, save);
-                                        save.buttonFinished();
                                     } else {
                                         DialogManager dialog = new DialogManager(getString(R.string.not_allowed));
                                         assert getFragmentManager() != null;
@@ -200,7 +199,6 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                         map.put("address", mAddress.getText().toString());
                         map.put("job", mJob.getText().toString());
                         saveUserData(map, save);
-                        save.buttonFinished();
                     } else {
                         DialogManager dialog = new DialogManager(getString(R.string.not_allowed));
                         assert getFragmentManager() != null;
@@ -225,7 +223,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
 
     private void saveUserData(Map<String, Object> map, final SaveProgressButton save) {
         mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
-                .update(map)
+                .set(map)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {

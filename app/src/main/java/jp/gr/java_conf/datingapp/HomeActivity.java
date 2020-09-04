@@ -3,6 +3,8 @@ package jp.gr.java_conf.datingapp;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.ImageButton;
 
 import androidx.annotation.NonNull;
@@ -67,6 +69,7 @@ public class HomeActivity extends AppCompatActivity {
         adapter.addFragment(new ProfileFragment(), "マイプロフィール");
         adapter.addFragment(new DiscoverFragment(), "さがす");
         adapter.addFragment(new ChatFragment(), "チャット");
+        mViewPager.setOffscreenPageLimit(2);
         mViewPager.setAdapter(adapter);
         mHomeTabs.setupWithViewPager(mViewPager);
         mHomeTabs.getTabAt(0).setIcon(R.drawable.profile);
@@ -119,24 +122,6 @@ public class HomeActivity extends AppCompatActivity {
 
             }
         });
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        System.out.println("onPause in Home");
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        System.out.println("onStop in Home");
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        System.out.println("onDestroy in Home");
     }
 
     @Override
