@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/colorPrimary"
-    tools:context=".fragment.ProfileFragment">
+    tools:context=".fragments.ProfileFragment">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -21,7 +21,8 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:padding="5dp">
 
             <TextView
                 android:id="@+id/textView4"

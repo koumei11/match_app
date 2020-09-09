@@ -38,6 +38,24 @@
     <string name="today">今日</string>
     <string name="yesterday">昨日</string>
     <string name="seen">既読</string>
+    <string name="online">オンライン</string>
+    <string name="within_a_day">24時間以内</string>
+    <string name="within_a_three_day">3日以内</string>
+    <string name="within_a_week">1週間以内</string>
+    <string name="within_a_month">1ヶ月以内</string>
+    <string name="over_a_month">1ヶ月以上</string>
+    <string name="block">ブロック</string>
+    <string name="yes">はい</string>
+    <string name="no">いいえ</string>
+    <string name="alert_block">このユーザーをブロックします。よろしいですか？</string>
+    <string name="block_complete">ブロックしました。</string>
+    <string name="no_image_selected">写真を選択していません</string>
+    <string name="storage_denied">ImageCropperはプロフィール写真を保存するためにストレージにアクセスする必要があります。</string>
+    <string name="camera_denied">ImageCropperはプロフィール写真を撮影するためにカメラにアクセスする必要があります。</string>
+    <string name="both_denied">ImageCropperはプロフィール写真を保存するためにストレージとカメラにアクセスする必要があります。</string>
+    <string name="another_image">別の写真を選択してください。</string>
+    <string name="select_image">写真を選んでください。</string>
+    <string name="crop_image">写真を切り取り</string>
     <string-array name="address_list">
         <item>Apple</item>
         <item>Banana</item>
@@ -63,5 +81,9 @@
         <item>Apple</item>
         <item>Banana</item>
         <item>Carrot</item>
+    </string-array>
+    <string-array name="image_picks">
+        <item>写真を撮る</item>
+        <item>ライブラリから</item>
     </string-array>
 </resources>

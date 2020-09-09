@@ -19,7 +19,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -29,20 +28,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -51,9 +44,9 @@ import java.util.List;
 import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import jp.gr.java_conf.datingapp.adapter.ChatRecyclerAdapter;
-import jp.gr.java_conf.datingapp.model.Chat;
-import jp.gr.java_conf.datingapp.model.Profile;
+import jp.gr.java_conf.datingapp.adapters.ChatRecyclerAdapter;
+import jp.gr.java_conf.datingapp.models.Chat;
+import jp.gr.java_conf.datingapp.models.Profile;
 import jp.gr.java_conf.datingapp.utility.WindowSizeGetter;
 
 public class ChatActivity extends AppCompatActivity {
@@ -142,6 +135,7 @@ public class ChatActivity extends AppCompatActivity {
         mCircleImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                view.setEnabled(false);
                 mStore.collection("Users").document(toId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<DocumentSnapshot> task) {
@@ -149,9 +143,11 @@ public class ChatActivity extends AppCompatActivity {
                             Profile profile = task.getResult().toObject(Profile.class);
                             Intent intent = new Intent(ChatActivity.this, UserDetailActivity.class);
                             intent.putExtra("profile", profile);
+                            intent.putExtra("user_id", profile.getUser_id());
                             intent.putExtra("match_flg", true);
                             startActivity(intent);
                         }
+                        view.setEnabled(true);
                     }
                 });
             }
@@ -244,7 +240,6 @@ public class ChatActivity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 mChatList.clear();
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    System.out.println();
                     Chat chat = snapshot.getValue(Chat.class);
                     if (chat != null) {
                         if ((chat.getFrom().equals(mAuth.getCurrentUser().getUid()) || chat.getFrom().equals(toId)) &&
@@ -291,7 +286,6 @@ public class ChatActivity extends AppCompatActivity {
         } else {
             map.put("isFirstMessageOfTheDay", true);
         }
-        System.out.println(mChatRecyclerAdapter);
         mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
         reference.child("Chats").push().setValue(map);
     }

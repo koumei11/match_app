@@ -3,9 +3,9 @@ package jp.gr.java_conf.datingapp;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -28,10 +28,11 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.HashMap;
 import java.util.Map;
 
-import jp.gr.java_conf.datingapp.adapter.HomeViewPagerAdapter;
-import jp.gr.java_conf.datingapp.fragment.ChatFragment;
-import jp.gr.java_conf.datingapp.fragment.DiscoverFragment;
-import jp.gr.java_conf.datingapp.fragment.ProfileFragment;
+import jp.gr.java_conf.datingapp.adapters.HomeViewPagerAdapter;
+import jp.gr.java_conf.datingapp.fragments.ChatFragment;
+import jp.gr.java_conf.datingapp.fragments.DiscoverFragment;
+import jp.gr.java_conf.datingapp.fragments.ProfileFragment;
+import jp.gr.java_conf.datingapp.models.Chat;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
 public class HomeActivity extends AppCompatActivity {
@@ -45,6 +46,7 @@ public class HomeActivity extends AppCompatActivity {
     private boolean isOnline = true;
     private FirebaseAuth mAuth;
     private FirebaseDatabase database;
+    private TextView badge;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,9 +76,10 @@ public class HomeActivity extends AppCompatActivity {
         mHomeTabs.setupWithViewPager(mViewPager);
         mHomeTabs.getTabAt(0).setIcon(R.drawable.profile);
         mHomeTabs.getTabAt(1).setIcon(R.drawable.discover);
-        mHomeTabs.getTabAt(2).setIcon(R.drawable.chat);
+        mHomeTabs.getTabAt(2).setCustomView(R.layout.notification_badge);
+        badge = mHomeTabs.getTabAt(2).getCustomView().findViewById(R.id.notification_text);
+        setBadge();
         mHomeTabs.selectTab(mHomeTabs.getTabAt(1));
-
         DatabaseReference myRef = database.getReference("/status/" + mAuth.getCurrentUser().getUid());
 
         Map<String, Object> isOfflineForDatabase = new HashMap<>();
@@ -142,5 +145,34 @@ public class HomeActivity extends AppCompatActivity {
             }
             break;
         }
+    }
+
+    private void setBadge() {
+        DatabaseReference ref = database.getReference("Chats");
+        ref.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                int unread = 0;
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    Chat chat = snapshot.getValue(Chat.class);
+                    chat.setSeen((boolean)snapshot.child("isSeen").getValue());
+                    if (chat.getTo().equals(mAuth.getCurrentUser().getUid()) && !chat.isSeen()) {
+                        unread++;
+                    }
+                }
+
+                if (unread > 0) {
+                    badge.setVisibility(View.VISIBLE);
+                    badge.setText(String.valueOf(unread));
+                } else {
+                    badge.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 }

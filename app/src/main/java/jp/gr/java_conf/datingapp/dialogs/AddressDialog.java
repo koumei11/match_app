@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.dialog;
+package jp.gr.java_conf.datingapp.dialogs;
 
 import android.app.AlertDialog;
 import android.app.Dialog;

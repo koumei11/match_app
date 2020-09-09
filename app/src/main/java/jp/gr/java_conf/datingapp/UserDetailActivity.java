@@ -23,19 +23,26 @@ import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.mindorks.placeholderview.SwipePlaceHolderView;
 
 import java.text.ParseException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import de.hdodenhof.circleimageview.CircleImageView;
-import jp.gr.java_conf.datingapp.dialog.DialogManager;
-import jp.gr.java_conf.datingapp.model.Profile;
+import jp.gr.java_conf.datingapp.dialogs.DialogManager;
+import jp.gr.java_conf.datingapp.models.Profile;
+import jp.gr.java_conf.datingapp.models.UserState;
 import jp.gr.java_conf.datingapp.utility.AgeCalculation;
 import jp.gr.java_conf.datingapp.utility.HeaderView;
 import jp.gr.java_conf.datingapp.utility.WindowSizeGetter;
@@ -58,9 +65,13 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
     private ChipGroup mLang;
     private TextView mNohobby;
     private TextView mNolang;
+    private CircleImageView online;
+    private TextView mLastSeen;
     private SwipePlaceHolderView mSwipeView;
     private FirebaseFirestore mStore;
     private FirebaseAuth mAuth;
+    private DatabaseReference ref;
+    private FirebaseDatabase database;
 
     @BindView(R.id.app_bar_layout)
     AppBarLayout appBarLayout;
@@ -98,6 +109,8 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
         mLang = findViewById(R.id.lang);
         mNohobby = findViewById(R.id.no_hobby);
         mNolang = findViewById(R.id.no_lang);
+        online = findViewById(R.id.online_detail);
+        mLastSeen = findViewById(R.id.last_seen);
 
         ButterKnife.bind(this);
 
@@ -129,7 +142,6 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
 
         appBarLayout.addOnOffsetChangedListener(this);
 
-        int bottomMargin = WindowSizeGetter.dpToPx(200);
         Point windowSize = WindowSizeGetter.getDisplaySize(this.getWindowManager());
 
         Intent intent = getIntent();
@@ -138,8 +150,48 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
             findViewById(R.id.match_button).setVisibility(View.GONE);
         }
         Profile profile = (Profile) intent.getSerializableExtra("profile");
+        String userId = intent.getStringExtra("user_id");
+
+        database = FirebaseDatabase.getInstance();
+        ref = database.getReference("/status/" + userId);
+        ref.addValueEventListener(new ValueEventListener() {
+              @Override
+              public void onDataChange(@NonNull DataSnapshot snapshot) {
+                  UserState userState = snapshot.getValue(UserState.class);
+                  if (userState != null) {
+                      Date now = new Date();
+                      long timePassed = (now.getTime() - userState.getLast_changed()) / 1000 / 60 / 60;
+                      if (userState.getState().equals("online")) {
+                          online.setBorderColor(getResources().getColor(R.color.colorGreen));
+                          mLastSeen.setText(getString(R.string.online));
+                      } else if (timePassed < 24) {
+                          online.setBorderColor(getResources().getColor(R.color.colorYellow));
+                          mLastSeen.setText(getString(R.string.within_a_day));
+                      } else if (timePassed / 24 < 3){
+                          online.setBorderColor(getResources().getColor(R.color.colorLightGrey));
+                          mLastSeen.setText(getString(R.string.within_a_three_day));
+                      } else if (timePassed / 24 < 7) {
+                          online.setBorderColor(getResources().getColor(R.color.colorLightGrey));
+                          mLastSeen.setText(getString(R.string.within_a_week));
+                      } else if (timePassed / 24 < 30) {
+                          online.setBorderColor(getResources().getColor(R.color.colorLightGrey));
+                          mLastSeen.setText(getString(R.string.within_a_month));
+                      } else {
+                          online.setBorderColor(getResources().getColor(R.color.colorLightGrey));
+                          mLastSeen.setText(getString(R.string.over_a_month));
+                      }
+                  }
+              }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+        collapsingToolbarLayout.getLayoutParams().width = windowSize.x;
+        collapsingToolbarLayout.getLayoutParams().height = windowSize.y - WindowSizeGetter.dpToPx(200);
         mImageView.getLayoutParams().width = windowSize.x;
-        mImageView.getLayoutParams().height = windowSize.y - bottomMargin + 50;
+        mImageView.getLayoutParams().height = windowSize.y - WindowSizeGetter.dpToPx(200);
         if (profile != null) {
             if (profile.getImg_url() != null && !profile.getImg_url().equals("")) {
                 Uri url = Uri.parse(profile.getImg_url());

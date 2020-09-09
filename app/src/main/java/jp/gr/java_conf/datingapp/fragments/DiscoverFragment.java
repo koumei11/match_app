@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.fragment;
+package jp.gr.java_conf.datingapp.fragments;
 
 import android.content.Context;
 import android.graphics.Point;
@@ -31,10 +31,10 @@ import java.util.List;
 import java.util.Map;
 
 import jp.gr.java_conf.datingapp.R;
-import jp.gr.java_conf.datingapp.model.Profile;
-import jp.gr.java_conf.datingapp.model.SwipeCard;
+import jp.gr.java_conf.datingapp.models.Profile;
+import jp.gr.java_conf.datingapp.models.SwipeCard;
 import jp.gr.java_conf.datingapp.utility.MatchHandler;
-import jp.gr.java_conf.datingapp.utility.SelectedListener;
+import jp.gr.java_conf.datingapp.interfaces.SelectedListener;
 import jp.gr.java_conf.datingapp.utility.WindowSizeGetter;
 
 /**
@@ -87,22 +87,44 @@ public class DiscoverFragment extends Fragment {
 
         mStore.collection("Users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    for (DocumentSnapshot documentSnapshot : task.getResult()) {
-                        String docId = documentSnapshot.getId();
-                        if (!docId.equals(mAuth.getCurrentUser().getUid())) {
-                            Profile profile = documentSnapshot.toObject(Profile.class).withId(docId);
-                            mProfileList.add(profile);
+            public void onComplete(@NonNull Task<QuerySnapshot> taskUsers) {
+                if (taskUsers.isSuccessful()) {
+                    mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
+                            .collection("Likes").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<QuerySnapshot> taskLikes) {
+                            if (taskLikes.isSuccessful()) {
+                                mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                        if (task.isSuccessful()) {
+                                            List<String> userIdList = new ArrayList<>();
+                                            for (DocumentSnapshot documentSnapshot : taskLikes.getResult()) {
+                                                userIdList.add((String) documentSnapshot.get("user_id"));
+                                            }
+                                            for (DocumentSnapshot documentSnapshot : taskUsers.getResult()) {
+                                                String docId = documentSnapshot.getId();
+                                                String sex = (String) documentSnapshot.get("sex");
+                                                if (!docId.equals(mAuth.getCurrentUser().getUid())
+                                                        && !sex.equals(task.getResult().get("sex"))
+                                                        && !userIdList.contains(docId)) {
+                                                    Profile profile = documentSnapshot.toObject(Profile.class).withId(docId);
+                                                    mProfileList.add(profile);
+                                                }
+                                            }
+
+                                            Collections.shuffle(mProfileList);
+
+                                            for (Profile profile : mProfileList) {
+                                                mSwipeView.addView(new SwipeCard(mContext, profile, mSwipeView, mSelectedListener, profile.getUser_id()));
+                                            }
+                                            progressBar.setVisibility(ProgressBar.INVISIBLE);
+                                        }
+                                    }
+                                });
+                            }
                         }
-                    }
-
-                    Collections.shuffle(mProfileList);
-
-                    for(Profile profile : mProfileList){
-                        mSwipeView.addView(new SwipeCard(mContext, profile, mSwipeView, mSelectedListener));
-                    }
-                    progressBar.setVisibility(ProgressBar.INVISIBLE);
+                    });
                 }
             }
         });
@@ -126,21 +148,21 @@ public class DiscoverFragment extends Fragment {
 
         mSelectedListener = new SelectedListener() {
             @Override
-            public void setSwipedDocumentId(final String docId, final String name) {
+            public void setSwipedDocumentId(final String docId, final String name, final boolean isLike) {
 
-                mStore.collection("Users").document(docId).collection("Likes")
-                        .document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful()) {
-                            if (task.getResult() != null && task.getResult().getData() != null) {
-                                mStore.collection("Users").document(docId).collection("Likes")
-                                        .document(mAuth.getCurrentUser().getUid()).delete();
-                                Toast.makeText(getContext(), getString(R.string.match_found), Toast.LENGTH_SHORT).show();
-                                MatchHandler.storeMatchInDatabase(docId, name, getContext());
-                            } else {
+                if (isLike) {
+                    mStore.collection("Users").document(docId).collection("Likes")
+                            .document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                            if (task.isSuccessful()) {
+                                if (task.getResult() != null && task.getResult().getData() != null) {
+                                    Toast.makeText(getContext(), getString(R.string.match_found), Toast.LENGTH_SHORT).show();
+                                    MatchHandler.storeMatchInDatabase(docId, name, getContext());
+                                }
                                 Map<String, Object> map = new HashMap<>();
                                 map.put("like", true);
+                                map.put("user_id", docId);
                                 mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
                                         .collection("Likes")
                                         .document(docId).set(map)
@@ -154,9 +176,23 @@ public class DiscoverFragment extends Fragment {
                                         });
                             }
                         }
-                    }
-                });
+                    });
+                } else {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("user_id", docId);
+                    map.put("like", false);
+                    mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
+                            .collection("Likes")
+                            .document(docId).set(map)
+                            .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Void> task) {
+                                    if (task.isSuccessful()) {
 
+                                    }
+                                }
+                            });
+                }
             }
         };
 

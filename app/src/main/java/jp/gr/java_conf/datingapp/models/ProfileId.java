@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.model;
+package jp.gr.java_conf.datingapp.models;
 
 public class ProfileId {
     String profileId;

@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.model;
+package jp.gr.java_conf.datingapp.models;
 
 import java.io.Serializable;
 
@@ -19,6 +19,8 @@ public class Profile extends ProfileId implements Serializable {
     private String lang;
 
     private String desc;
+
+    private String user_id;
 
     public Profile() {
     }
@@ -85,5 +87,13 @@ public class Profile extends ProfileId implements Serializable {
 
     public void setDesc(String desc) {
         this.desc = desc;
+    }
+
+    public String getUser_id() {
+        return user_id;
+    }
+
+    public void setUser_id(String user_id) {
+        this.user_id = user_id;
     }
 }

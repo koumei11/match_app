@@ -29,11 +29,12 @@
                 android:id="@+id/detail_image"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/colorPrimary"
+                android:adjustViewBounds="true"
+                android:background="@color/colorWhite"
                 android:fitsSystemWindows="true"
+                android:scaleType="centerCrop"
                 android:transitionName="trans1"
                 app:layout_collapseMode="parallax"
-                android:scaleType="fitStart"
                 app:srcCompat="@drawable/avatornew" />
 
             <androidx.appcompat.widget.Toolbar
@@ -83,7 +84,34 @@
             android:layout_marginBottom="50dp"
             android:orientation="vertical">
 
-            <TextView
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginRight="10dp"
+                android:gravity="center|right"
+                android:orientation="horizontal"
+                android:paddingTop="10dp">
+
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/online_detail"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@mipmap/ic_launcher"
+                    app:civ_border_color="@color/colorYellow"
+                    app:civ_border_width="10dp" />
+
+                <TextView
+                    android:id="@+id/last_seen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="5dp"
+                    android:text="24時間以内"
+                    android:textColor="@color/colorLightGrey"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+        <TextView
                 android:id="@+id/name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

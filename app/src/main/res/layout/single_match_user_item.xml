@@ -56,8 +56,6 @@
         android:padding="3dp"
         android:textColor="#FFFFFF"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toEndOf="@+id/match_img"
         app:layout_constraintTop_toBottomOf="@+id/match_name" />
 
@@ -93,8 +91,25 @@
         android:layout_height="wrap_content"
         android:gravity="bottom"
         android:textColor="@color/colorGrey"
-        android:textSize="16sp"
+        android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+
+    <TextView
+        android:id="@+id/notification_text_match"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:background="@drawable/round_shape"
+        android:gravity="center"
+        android:textColor="@color/colorWhite"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.771"
+        app:layout_constraintStart_toEndOf="@+id/newest_message"
+        app:layout_constraintTop_toBottomOf="@+id/sent_date"
+        app:layout_constraintVertical_bias="0.629" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

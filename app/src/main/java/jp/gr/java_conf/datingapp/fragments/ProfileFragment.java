@@ -1,9 +1,8 @@
-package jp.gr.java_conf.datingapp.fragment;
+package jp.gr.java_conf.datingapp.fragments;
 
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.text.InputType;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -27,12 +26,9 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
@@ -47,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+import jp.gr.java_conf.datingapp.ImageActivity;
 import jp.gr.java_conf.datingapp.MainActivity;
 import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.progressbar.LogoutProgressButton;
@@ -59,6 +56,8 @@ import static android.app.Activity.RESULT_OK;
  * A simple {@link Fragment} subclass.
  */
 public class ProfileFragment extends Fragment {
+    private static final int REQUEST_CODE = 100;
+
     private CircleImageView mImg;
     private EditText mName;
     private EditText mJob;
@@ -111,9 +110,11 @@ public class ProfileFragment extends Fragment {
 
             @Override
             public void onClick(View view) {
-                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-                photoPickerIntent.setType("image/*");
-                startActivityForResult(photoPickerIntent, RESULT_LOAD_IMG);
+//                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+//                photoPickerIntent.setType("image/*");
+//                startActivityForResult(photoPickerIntent, RESULT_LOAD_IMG);
+                Intent intent = new Intent(getActivity(), ImageActivity.class);
+                startActivityForResult(intent, REQUEST_CODE);
             }
         });
 
@@ -240,13 +241,19 @@ public class ProfileFragment extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
-            final Uri imageUri = data.getData();
-            if (imageUri != null) {
-                url = imageUri;
-                Glide.with(getContext()).load(imageUri).into(mImg);
+            if (requestCode == REQUEST_CODE) {
+                if (data != null) {
+                    System.out.println("onActivityResult in ProfileFragment");
+                    System.out.println(data.getStringExtra("image_uri"));
+                    final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
+                    if (imageUri != null) {
+                        url = imageUri;
+                        Glide.with(getContext()).load(imageUri).into(mImg);
+                    }
+                }
             }
         }else {
-            Toast.makeText(getContext(), "写真を選択していません", Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), getString(R.string.no_image_selected), Toast.LENGTH_SHORT).show();
         }
     }
 

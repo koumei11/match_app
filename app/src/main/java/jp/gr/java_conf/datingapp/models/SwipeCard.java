@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.model;
+package jp.gr.java_conf.datingapp.models;
 
 import android.app.Activity;
 import android.content.Context;
@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityOptionsCompat;
 
 import com.bumptech.glide.Glide;
@@ -25,7 +26,7 @@ import com.mindorks.placeholderview.annotations.swipe.SwipeOutState;
 
 import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.UserDetailActivity;
-import jp.gr.java_conf.datingapp.utility.SelectedListener;
+import jp.gr.java_conf.datingapp.interfaces.SelectedListener;
 
 @Layout(R.layout.swipe_card_view)
 public class SwipeCard {
@@ -41,25 +42,33 @@ public class SwipeCard {
     @View(R.id.locationNameTxt)
     private TextView locationNameTxt;
 
+    @View(R.id.constraint_prof)
+    private ConstraintLayout constraintLayout;
+
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Click(R.id.constraint_prof)
     private void viewDetail() {
+        constraintLayout.setEnabled(false);
         Intent intent = new Intent(mContext, UserDetailActivity.class);
         intent.putExtra("profile", mProfile);
+        intent.putExtra("user_id", mUserId);
         ActivityOptionsCompat compat = ActivityOptionsCompat.makeSceneTransitionAnimation((Activity) mContext, profileImageView, "trans1");
         ((Activity) mContext).startActivityForResult(intent, REQUEST_CODE, compat.toBundle());
+        constraintLayout.setEnabled(true);
     }
 
     private Profile mProfile;
     private Context mContext;
     private SwipePlaceHolderView mSwipeView;
     private SelectedListener mSelectedListener;
+    private String mUserId;
 
-    public SwipeCard(Context context, Profile profile, SwipePlaceHolderView swipeView, SelectedListener selectedListener) {
+    public SwipeCard(Context context, Profile profile, SwipePlaceHolderView swipeView, SelectedListener selectedListener, String userId) {
         mContext = context;
         mProfile = profile;
         mSwipeView = swipeView;
         mSelectedListener = selectedListener;
+        mUserId = userId;
     }
 
     @Resolve
@@ -76,17 +85,18 @@ public class SwipeCard {
 
     @SwipeOut
     private void onSwipedOut(){
+        mSelectedListener.setSwipedDocumentId(mProfile.profileId, mProfile.getName(), false);
         Log.d("EVENT", "onSwipedOut");
     }
 
     @SwipeCancelState
-    private void onSwipeCancelState(){
+    private void onSwipeCancelState() {
         Log.d("EVENT", "onSwipeCancelState");
     }
 
     @SwipeIn
     private void onSwipeIn(){
-        mSelectedListener.setSwipedDocumentId(mProfile.profileId, mProfile.getName());
+        mSelectedListener.setSwipedDocumentId(mProfile.profileId, mProfile.getName(), true);
         Log.d("EVENT", "onSwipedIn");
     }
 

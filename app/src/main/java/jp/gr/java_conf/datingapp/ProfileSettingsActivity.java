@@ -34,9 +34,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import jp.gr.java_conf.datingapp.dialog.AddressDialog;
-import jp.gr.java_conf.datingapp.dialog.DialogManager;
-import jp.gr.java_conf.datingapp.fragment.DatePickFragment;
+import jp.gr.java_conf.datingapp.dialogs.AddressDialog;
+import jp.gr.java_conf.datingapp.dialogs.DialogManager;
+import jp.gr.java_conf.datingapp.fragments.DatePickFragment;
 import jp.gr.java_conf.datingapp.progressbar.SaveProgressButton;
 import jp.gr.java_conf.datingapp.utility.AgeCalculation;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
@@ -179,6 +179,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                                         map.put("sex", mSex);
                                         map.put("address", mAddress.getText().toString());
                                         map.put("job", mJob.getText().toString());
+                                        map.put("user_id", mAuth.getCurrentUser().getUid());
                                         saveUserData(map, save);
                                     } else {
                                         DialogManager dialog = new DialogManager(getString(R.string.not_allowed));
@@ -198,6 +199,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                         map.put("sex", mSex);
                         map.put("address", mAddress.getText().toString());
                         map.put("job", mJob.getText().toString());
+                        map.put("user_id", mAuth.getCurrentUser().getUid());
                         saveUserData(map, save);
                     } else {
                         DialogManager dialog = new DialogManager(getString(R.string.not_allowed));

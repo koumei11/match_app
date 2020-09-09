@@ -1,6 +1,5 @@
-package jp.gr.java_conf.datingapp.adapter;
+package jp.gr.java_conf.datingapp.adapters;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -25,8 +24,7 @@ import java.util.Set;
 import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.UserDetailActivity;
-import jp.gr.java_conf.datingapp.model.Chat;
-import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
+import jp.gr.java_conf.datingapp.models.Chat;
 import jp.gr.java_conf.datingapp.utility.WeekDayConverter;
 
 public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -145,10 +143,13 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             receiverViewHolder.mImageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    view.setEnabled(false);
                     Intent intent = new Intent(mContext, UserDetailActivity.class);
                     intent.putExtra("profile", mChatList.get(position).getProfile());
+                    intent.putExtra("user_id", mChatList.get(position).getProfile().getUser_id());
                     intent.putExtra("match_flg", true);
                     mContext.startActivity(intent);
+                    view.setEnabled(true);
                 }
             });
         }

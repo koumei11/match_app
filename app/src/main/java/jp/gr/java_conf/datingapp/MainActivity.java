@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -39,12 +38,10 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import org.json.JSONException;
 
-import java.io.Serializable;
-
-import jp.gr.java_conf.datingapp.adapter.ViewPagerAdapter;
-import jp.gr.java_conf.datingapp.dialog.DialogManager;
-import jp.gr.java_conf.datingapp.fragment.SignInFragment;
-import jp.gr.java_conf.datingapp.fragment.SignUpFragment;
+import jp.gr.java_conf.datingapp.adapters.ViewPagerAdapter;
+import jp.gr.java_conf.datingapp.dialogs.DialogManager;
+import jp.gr.java_conf.datingapp.fragments.SignInFragment;
+import jp.gr.java_conf.datingapp.fragments.SignUpFragment;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
 
@@ -117,7 +114,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         int position = mTabPosition.getInt("position", -1);
-        System.out.println(position);
         if (mTabs.getTabAt(0) != null && mTabs.getTabAt(1) != null) {
             if (position == 0) {
                 mTabs.getTabAt(0).select();

@@ -1,7 +1,5 @@
-package jp.gr.java_conf.datingapp.model;
+package jp.gr.java_conf.datingapp.models;
 
-
-import java.sql.Timestamp;
 
 public class Chat {
     private String from;
