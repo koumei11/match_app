@@ -24,6 +24,8 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -42,7 +44,7 @@ import jp.gr.java_conf.datingapp.utility.AgeCalculation;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
 public class ProfileSettingsActivity extends AppCompatActivity {
-
+    private static final int REQUEST_CODE = 100;
     private CircleImageView mImg;
     private FirebaseAuth mAuth;
     private EditText mName;
@@ -100,9 +102,11 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         mImg.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
-                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-                photoPickerIntent.setType("image/*");
-                startActivityForResult(photoPickerIntent, RESULT_LOAD_IMG);
+//                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+//                photoPickerIntent.setType("image/*");
+//                startActivityForResult(photoPickerIntent, RESULT_LOAD_IMG);
+                Intent intent = new Intent(ProfileSettingsActivity.this, ImageActivity.class);
+                startActivityForResult(intent, REQUEST_CODE);
             }
         });
 
@@ -180,6 +184,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                                         map.put("address", mAddress.getText().toString());
                                         map.put("job", mJob.getText().toString());
                                         map.put("user_id", mAuth.getCurrentUser().getUid());
+                                        map.put("account_flg", true);
                                         saveUserData(map, save);
                                     } else {
                                         DialogManager dialog = new DialogManager(getString(R.string.not_allowed));
@@ -200,6 +205,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                         map.put("address", mAddress.getText().toString());
                         map.put("job", mJob.getText().toString());
                         map.put("user_id", mAuth.getCurrentUser().getUid());
+                        map.put("account_flg", true);
                         saveUserData(map, save);
                     } else {
                         DialogManager dialog = new DialogManager(getString(R.string.not_allowed));
@@ -232,7 +238,11 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                         Intent intent = new Intent(ProfileSettingsActivity.this, HomeActivity.class);
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
-                        Toast.makeText(mActivity, "ようこそ！", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mActivity, getString(R.string.welcome), Toast.LENGTH_SHORT).show();
+                        DatabaseReference reference = FirebaseDatabase.getInstance().getReference().child("/account/" + mAuth.getCurrentUser().getUid());
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("account_flg", true);
+                        reference.setValue(map);
                         save.buttonFinished();
                     }
                 });
@@ -262,10 +272,14 @@ public class ProfileSettingsActivity extends AppCompatActivity {
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
-            final Uri imageUri = data.getData();
-            if (imageUri != null) {
-                url = imageUri;
-                Glide.with(mActivity).load(imageUri).into(mImg);
+            if (requestCode == REQUEST_CODE) {
+                if (data != null) {
+                    final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
+                    if (imageUri != null) {
+                        url = imageUri;
+                        Glide.with(mActivity).load(imageUri).into(mImg);
+                    }
+                }
             }
         }else {
             Toast.makeText(mActivity, "写真を選択していません", Toast.LENGTH_LONG).show();

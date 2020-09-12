@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -47,12 +48,14 @@ public class DiscoverFragment extends Fragment {
     private FirebaseFirestore mStore;
     private FirebaseAuth mAuth;
     private List<Profile> mProfileList;
+    private TextView mNoMember;
     private SelectedListener mSelectedListener;
     private ProgressBar progressBar;
     private ImageButton mRejectButton;
     private ImageButton mAcceptButton;
     private static boolean rejectFlg;
     private static boolean acceptFlg;
+    private int totalMember = 0;
 
     public DiscoverFragment() {
         // Required empty public constructor
@@ -67,8 +70,13 @@ public class DiscoverFragment extends Fragment {
         progressBar = view.findViewById(R.id.progressbar1);
         progressBar.setVisibility(ProgressBar.VISIBLE);
         mContext = getContext();
+        mRejectButton = view.findViewById(R.id.rejectBtn);
+        mAcceptButton = view.findViewById(R.id.acceptBtn);
+        mNoMember = view.findViewById(R.id.no_member);
+        mNoMember.setVisibility(View.GONE);
 
         int bottomMargin = WindowSizeGetter.dpToPx(200);
+        int marginTop = WindowSizeGetter.dpToPx(40);
         Point windowSize = WindowSizeGetter.getDisplaySize(getActivity().getWindowManager());
 
         mSwipeView.getBuilder()
@@ -77,7 +85,7 @@ public class DiscoverFragment extends Fragment {
                         .setViewHeight(windowSize.y - bottomMargin)
                         .setViewGravity(Gravity.CENTER_HORIZONTAL)
                         .setRelativeScale(0.01f)
-                        .setMarginTop(30)
+                        .setMarginTop(marginTop)
                         .setSwipeInMsgLayoutId(R.layout.swipe_in_msg_view)
                         .setSwipeOutMsgLayoutId(R.layout.swipe_out_msg_view));
 
@@ -99,6 +107,7 @@ public class DiscoverFragment extends Fragment {
                                     public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                                         if (task.isSuccessful()) {
                                             List<String> userIdList = new ArrayList<>();
+                                            String mySex = (String) task.getResult().get("sex");
                                             for (DocumentSnapshot documentSnapshot : taskLikes.getResult()) {
                                                 userIdList.add((String) documentSnapshot.get("user_id"));
                                             }
@@ -106,19 +115,25 @@ public class DiscoverFragment extends Fragment {
                                                 String docId = documentSnapshot.getId();
                                                 String sex = (String) documentSnapshot.get("sex");
                                                 if (!docId.equals(mAuth.getCurrentUser().getUid())
-                                                        && !sex.equals(task.getResult().get("sex"))
-                                                        && !userIdList.contains(docId)) {
+                                                        && !sex.equals(mySex)
+                                                        && !userIdList.contains(docId)
+                                                        && (boolean) documentSnapshot.get("account_flg")) {
                                                     Profile profile = documentSnapshot.toObject(Profile.class).withId(docId);
                                                     mProfileList.add(profile);
                                                 }
                                             }
-
+                                            totalMember  = mProfileList.size();
                                             Collections.shuffle(mProfileList);
 
                                             for (Profile profile : mProfileList) {
                                                 mSwipeView.addView(new SwipeCard(mContext, profile, mSwipeView, mSelectedListener, profile.getUser_id()));
                                             }
                                             progressBar.setVisibility(ProgressBar.INVISIBLE);
+                                            if (totalMember == 0) {
+                                                mNoMember.setVisibility(View.VISIBLE);
+                                                mAcceptButton.setVisibility(View.GONE);
+                                                mRejectButton.setVisibility(View.GONE);
+                                            }
                                         }
                                     }
                                 });
@@ -128,9 +143,6 @@ public class DiscoverFragment extends Fragment {
                 }
             }
         });
-
-        mRejectButton = view.findViewById(R.id.rejectBtn);
-        mAcceptButton = view.findViewById(R.id.acceptBtn);
 
         mRejectButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -149,8 +161,8 @@ public class DiscoverFragment extends Fragment {
         mSelectedListener = new SelectedListener() {
             @Override
             public void setSwipedDocumentId(final String docId, final String name, final boolean isLike) {
-
                 if (isLike) {
+                    totalMember--;
                     mStore.collection("Users").document(docId).collection("Likes")
                             .document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                         @Override
@@ -178,6 +190,7 @@ public class DiscoverFragment extends Fragment {
                         }
                     });
                 } else {
+                    totalMember--;
                     Map<String, Object> map = new HashMap<>();
                     map.put("user_id", docId);
                     map.put("like", false);
@@ -192,6 +205,12 @@ public class DiscoverFragment extends Fragment {
                                     }
                                 }
                             });
+                }
+
+                if (totalMember <= 0) {
+                    mNoMember.setVisibility(View.VISIBLE);
+                    mRejectButton.setVisibility(View.GONE);
+                    mAcceptButton.setVisibility(View.GONE);
                 }
             }
         };

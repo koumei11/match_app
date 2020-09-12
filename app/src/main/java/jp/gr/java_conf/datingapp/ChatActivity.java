@@ -19,6 +19,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -27,6 +28,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -36,6 +38,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -50,6 +55,8 @@ import jp.gr.java_conf.datingapp.models.Profile;
 import jp.gr.java_conf.datingapp.utility.WindowSizeGetter;
 
 public class ChatActivity extends AppCompatActivity {
+    private static final int REQUEST_CODE = 100;
+    private static final int REQUEST_CODE2 = 200;
     private RecyclerView mChatRecyclerView;
     private FirebaseAuth mAuth;
     private FirebaseFirestore mStore;
@@ -62,6 +69,7 @@ public class ChatActivity extends AppCompatActivity {
     private EditText mChatText;
     private ImageView mSend;
     private DatabaseReference reference;
+    private StorageReference mStorage;
     String toId = "";
     String imgUrl = "";
     String userName = "";
@@ -101,6 +109,7 @@ public class ChatActivity extends AppCompatActivity {
         mSend = findViewById(R.id.chat_btn);
         mAuth = FirebaseAuth.getInstance();
         mStore = FirebaseFirestore.getInstance();
+        mStorage = FirebaseStorage.getInstance().getReference();
         reference = FirebaseDatabase.getInstance().getReference();
         toId = getIntent().getStringExtra("doc_id");
         imgUrl = getIntent().getStringExtra("user_img");
@@ -108,6 +117,20 @@ public class ChatActivity extends AppCompatActivity {
         userProfile = (Profile) getIntent().getSerializableExtra("profile");
         mChatList = new ArrayList<>();
         mChatRecyclerAdapter = new ChatRecyclerAdapter(ChatActivity.this, mChatList);
+
+        mCamera.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                takePhoto();
+            }
+        });
+
+        mLibrary.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openLibrary();
+            }
+        });
 
         final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setStackFromEnd(true);
@@ -203,10 +226,40 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (!mChatText.getText().toString().isEmpty()) {
-                    sendMessage(mChatText.getText().toString(), myImg, mAuth.getCurrentUser().getUid(), toId);
+                    sendMessage(mChatText.getText().toString(), myImg, mAuth.getCurrentUser().getUid(), toId, null);
                 }
             }
         });
+    }
+
+    private void openLibrary() {
+        Intent intent = new Intent(this, ImageActivity.class);
+        intent.putExtra("fromChatActivity", true);
+        intent.putExtra("requestCode", REQUEST_CODE2);
+        startActivityForResult(intent, REQUEST_CODE2);
+    }
+
+    private void takePhoto() {
+        Intent intent = new Intent(this, ImageActivity.class);
+        intent.putExtra("fromChatActivity", true);
+        intent.putExtra("requestCode", REQUEST_CODE);
+        startActivityForResult(intent, REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE) {
+            if (data != null) {
+                final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
+                sendMessage(null, myImg, mAuth.getCurrentUser().getUid(), toId, imageUri);
+            }
+        } else if (requestCode == REQUEST_CODE2) {
+            if (data != null) {
+                final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
+                sendMessage(null, myImg, mAuth.getCurrentUser().getUid(), toId, imageUri);
+            }
+        }
     }
 
     private void seenMessage(final String userId) {
@@ -244,7 +297,7 @@ public class ChatActivity extends AppCompatActivity {
                     if (chat != null) {
                         if ((chat.getFrom().equals(mAuth.getCurrentUser().getUid()) || chat.getFrom().equals(toId)) &&
                                 (chat.getTo().equals(mAuth.getCurrentUser().getUid()) || chat.getTo().equals(toId))) {
-                            // isFirstMessageOfTheDayのみ上手くマッピングできないため
+                            // isFirstMessageOfTheDayとisSeenが上手くマッピングできないためここで直接代入
                             chat.setFirstMessageOfTheDay((Boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
                             chat.setSeen((Boolean) snapshot.child("isSeen").getValue());
                             chat.setProfile(profile);
@@ -264,30 +317,68 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 
-    private void sendMessage(String message, String image, String myId, String toId) {
+    private void sendMessage(String message, String image, String myId, String toId, Uri imageUri) {
         mChatText.setText("");
         Map<String, Object> map = new HashMap<>();
         DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
 
-        map.put("message", message);
-        map.put("my_img", image);
-        map.put("from", myId);
-        map.put("to", toId);
-        map.put("isSeen", false);
-        map.put("time_stamp", new Date().getTime());
-        if (mChatList.size() > 0) {
-            java.sql.Date date1 = new java.sql.Date(mChatList.get(mChatList.size() - 1).getTime_stamp());
-            java.sql.Date date2 = new java.sql.Date((Long) map.get("time_stamp"));
-            if (date2.toString().equals(date1.toString())) {
-                map.put("isFirstMessageOfTheDay", false);
+        if (imageUri != null) {
+            Long tsLong = System.currentTimeMillis()/1000;
+            String ts = tsLong.toString();
+            mStorage.child(ts + "/").putFile(imageUri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                @Override
+                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                    Task<Uri> res = taskSnapshot.getStorage().getDownloadUrl();
+                    res.addOnSuccessListener(new OnSuccessListener<Uri>() {
+                        @Override
+                        public void onSuccess(Uri uri) {
+                            String downloadUri = uri.toString();
+                            map.put("img_uri", downloadUri);
+                            map.put("message", null);
+                            map.put("my_img", image);
+                            map.put("from", myId);
+                            map.put("to", toId);
+                            map.put("isSeen", false);
+                            map.put("time_stamp", new Date().getTime());
+                            if (mChatList.size() > 0) {
+                                java.sql.Date date1 = new java.sql.Date(mChatList.get(mChatList.size() - 1).getTime_stamp());
+                                java.sql.Date date2 = new java.sql.Date((Long) map.get("time_stamp"));
+                                if (date2.toString().equals(date1.toString())) {
+                                    map.put("isFirstMessageOfTheDay", false);
+                                } else {
+                                    map.put("isFirstMessageOfTheDay", true);
+                                }
+                            } else {
+                                map.put("isFirstMessageOfTheDay", true);
+                            }
+                            mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
+                            reference.child("Chats").push().setValue(map);
+                        }
+                    });
+                }
+            });
+        } else {
+            map.put("img_uri", null);
+            map.put("message", message);
+            map.put("my_img", image);
+            map.put("from", myId);
+            map.put("to", toId);
+            map.put("isSeen", false);
+            map.put("time_stamp", new Date().getTime());
+            if (mChatList.size() > 0) {
+                java.sql.Date date1 = new java.sql.Date(mChatList.get(mChatList.size() - 1).getTime_stamp());
+                java.sql.Date date2 = new java.sql.Date((Long) map.get("time_stamp"));
+                if (date2.toString().equals(date1.toString())) {
+                    map.put("isFirstMessageOfTheDay", false);
+                } else {
+                    map.put("isFirstMessageOfTheDay", true);
+                }
             } else {
                 map.put("isFirstMessageOfTheDay", true);
             }
-        } else {
-            map.put("isFirstMessageOfTheDay", true);
+            mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
+            reference.child("Chats").push().setValue(map);
         }
-        mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
-        reference.child("Chats").push().setValue(map);
     }
 
     @Override

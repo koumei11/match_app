@@ -4,9 +4,7 @@ public class Match {
 
     private String name;
     private String user_id;
-    private String img_url;
     private long time_stamp;
-    private boolean isBlock;
 
     public Match(){}
 
@@ -26,14 +24,6 @@ public class Match {
         this.user_id = user_id;
     }
 
-    public String getImg_url() {
-        return img_url;
-    }
-
-    public void setImg_url(String img_url) {
-        this.img_url = img_url;
-    }
-
     public long getTime_stamp() {
         return time_stamp;
     }
@@ -42,13 +32,6 @@ public class Match {
         this.time_stamp = time_stamp;
     }
 
-    public boolean isBlock() {
-        return isBlock;
-    }
-
-    public void setBlock(boolean block) {
-        isBlock = block;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -63,9 +46,7 @@ public class Match {
         return "Match{" +
                 "name='" + name + '\'' +
                 ", user_id='" + user_id + '\'' +
-                ", img_url='" + img_url + '\'' +
                 ", time_stamp=" + time_stamp +
-                ", isBlock=" + isBlock +
                 '}';
     }
 }

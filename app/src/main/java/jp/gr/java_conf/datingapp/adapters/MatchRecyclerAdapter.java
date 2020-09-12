@@ -51,6 +51,7 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     private List<Match> mMatchList;
     private final FirebaseFirestore mStore = FirebaseFirestore.getInstance();
     private final FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    private final String myId = mAuth.getCurrentUser().getUid();
     private final FirebaseDatabase database = FirebaseDatabase.getInstance();
     private DatabaseReference ref;
     private DatabaseReference blockRef = database.getReference();
@@ -191,7 +192,7 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             if (mChatList.size() == 0) {
                 matchViewHolder.mChatText.setText("");
             } else {
-                matchViewHolder.mChatText.setText("会話中のお相手");
+                matchViewHolder.mChatText.setText(mContext.getString(R.string.during_chat));
             }
 
         }
@@ -206,7 +207,7 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     Chat chat = snapshot.getValue(Chat.class);
                     chat.setSeen((boolean)snapshot.child("isSeen").getValue());
-                    if (chat.getTo().equals(mAuth.getCurrentUser().getUid()) && !chat.isSeen() && chat.getFrom().equals(uid)) {
+                    if (chat.getTo().equals(myId) && !chat.isSeen() && chat.getFrom().equals(uid)) {
                         unread++;
                     }
                 }
@@ -227,42 +228,30 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     }
 
     private void blockUser(String uid) {
-
-        mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
-                .collection("Match").document(uid)
-                .update("isBlock", true).addOnSuccessListener(new OnSuccessListener<Void>() {
-            @Override
-            public void onSuccess(Void aVoid) {
-                mStore.collection("Users").document(uid)
-                        .collection("Match").document(mAuth.getCurrentUser().getUid())
-                        .update("isBlock", true).addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Map<String, Object> map = new HashMap<>();
-                        map.put("blocked_user_id", uid);
-                        map.put("block_user_id", mAuth.getCurrentUser().getUid());
-                        map.put("isBlock", true);
-
-                        blockRef.child("Block").push().setValue(map);
-                    }
-                });
-            }
-        });
+        Map<String, Object> map = new HashMap<>();
+        map.put("blocked_user_id", uid);
+        map.put("block_user_id", myId);
+        map.put("isBlock", true);
+        blockRef.child("Block").push().setValue(map);
     }
 
     private void showMessage(String uid, TextView mSentDate, TextView mNewestMessage) {
         theLastMessage = "default";
         theSentDate = "";
-        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Chats");
         reference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     Chat chat = snapshot.getValue(Chat.class);
-                    if ((chat.getFrom().equals(firebaseUser.getUid()) || chat.getFrom().equals(uid)) &&
-                            (chat.getTo().equals(firebaseUser.getUid()) || chat.getTo().equals(uid))) {
-                        theLastMessage = chat.getMessage();
+                    if ((chat.getFrom().equals(myId) || chat.getFrom().equals(uid)) &&
+                            (chat.getTo().equals(myId) || chat.getTo().equals(uid))) {
+                        if (chat.getMessage() == null && chat.getImg_uri() != null) {
+                            theLastMessage = mContext.getString(R.string.send_image);
+                        } else {
+                            theLastMessage = chat.getMessage();
+                        }
+
                         theSentDate = DateTimeConverter.getSentTime(chat.getTime_stamp());
                     }
                 }
@@ -270,7 +259,7 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                 switch (theLastMessage) {
                     case "default":
                         mSentDate.setText("");
-                        mNewestMessage.setText("メッセージがありません。");
+                        mNewestMessage.setText(mContext.getString(R.string.no_message));
                         break;
                     default:
                         mSentDate.setText(theSentDate);

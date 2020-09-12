@@ -46,6 +46,21 @@
             android:text="Text value"
             android:textColor="#000000" />
 
+        <androidx.cardview.widget.CardView
+            app:cardCornerRadius="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/receiver_image"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:maxWidth="200dp"
+                android:visibility="gone" />
+
+        </androidx.cardview.widget.CardView>
+
         <TextView
             android:id="@+id/receive_datetime"
             android:layout_width="wrap_content"

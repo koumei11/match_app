@@ -41,12 +41,39 @@
                 android:id="@+id/pro_image"
                 android:layout_width="120dp"
                 android:layout_height="120dp"
-                android:layout_marginStart="40dp"
-                android:layout_marginLeft="40dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginLeft="16dp"
                 android:layout_marginTop="20dp"
                 android:src="@drawable/avatornew"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/textView4" />
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/pro_image3"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="132dp"
+                android:layout_marginEnd="10dp"
+                android:layout_marginRight="10dp"
+                android:src="@drawable/avatornew"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.25"
+                app:layout_constraintStart_toEndOf="@+id/pro_image2"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/pro_image2"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginLeft="16dp"
+                android:src="@drawable/avatornew"
+                app:layout_constraintBottom_toTopOf="@+id/pro_name"
+                app:layout_constraintStart_toEndOf="@+id/pro_image"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.658" />
 
             <TextView
                 android:id="@+id/name"
@@ -290,54 +317,39 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </androidx.cardview.widget.CardView>
 
-            <androidx.cardview.widget.CardView
+            <TextView
                 android:id="@+id/logout"
-                android:layout_width="250dp"
-                android:layout_height="45dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_border_bottom_black"
+                android:clickable="true"
+                android:textColor="@color/colorLightGrey"
+                android:textSize="12sp"
+                android:text="@string/logout"
                 android:layout_marginTop="30dp"
-                android:layout_marginBottom="20dp"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.503"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/save">
+            </TextView>
 
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/pro_logout_layout"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@color/colorRed">
+            <TextView
+                android:id="@+id/quit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="20dp"
+                android:text="@string/quit"
+                android:clickable="true"
+                android:textColor="@color/colorLightGrey"
+                android:textSize="12sp"
+                android:background="@drawable/bg_border_bottom_black"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/logout"
+                android:focusable="true" />
 
-                    <ProgressBar
-                        android:id="@+id/pro_logout_progressBar"
-                        style="?android:attr/progressBarStyle"
-                        android:layout_width="38dp"
-                        android:layout_height="30dp"
-                        android:layout_marginEnd="3dp"
-                        android:layout_marginRight="3dp"
-                        android:indeterminate="true"
-                        android:indeterminateTint="@color/colorLightBlue"
-                        android:indeterminateTintMode="src_atop"
-                        android:visibility="gone"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toStartOf="@+id/pro_logout_textView"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintVertical_bias="0.466"
-                        tools:targetApi="lollipop" />
-
-                    <TextView
-                        android:id="@+id/pro_logout_textView"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="ログアウト"
-                        android:textColor="@color/colorWhite"
-                        android:textSize="14sp"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </androidx.cardview.widget.CardView>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>

@@ -26,7 +26,7 @@ public class AddressDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle("居住地を入力してください")
+        builder.setTitle(getString(R.string.enter_address))
                 .setItems(getResources().getStringArray(R.array.address_list), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {

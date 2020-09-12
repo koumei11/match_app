@@ -8,6 +8,10 @@ public class Profile extends ProfileId implements Serializable {
 
     private String img_url;
 
+    private String img_url2;
+
+    private String img_url3;
+
     private String date;
 
     private String address;
@@ -95,5 +99,21 @@ public class Profile extends ProfileId implements Serializable {
 
     public void setUser_id(String user_id) {
         this.user_id = user_id;
+    }
+
+    public String getImg_url2() {
+        return img_url2;
+    }
+
+    public void setImg_url2(String img_url2) {
+        this.img_url2 = img_url2;
+    }
+
+    public String getImg_url3() {
+        return img_url3;
+    }
+
+    public void setImg_url3(String img_url3) {
+        this.img_url3 = img_url3;
     }
 }

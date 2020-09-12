@@ -216,6 +216,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         if (mAuth.getCurrentUser() != null) {
+            System.out.println(mAuth.getCurrentUser().getUid());
             progressBar.setVisibility(ProgressBar.VISIBLE);
             mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
                     .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {

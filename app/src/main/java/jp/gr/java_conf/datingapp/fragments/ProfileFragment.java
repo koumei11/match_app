@@ -1,5 +1,7 @@
 package jp.gr.java_conf.datingapp.fragments;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -26,10 +28,15 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
@@ -46,7 +53,8 @@ import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.ImageActivity;
 import jp.gr.java_conf.datingapp.MainActivity;
 import jp.gr.java_conf.datingapp.R;
-import jp.gr.java_conf.datingapp.progressbar.LogoutProgressButton;
+import jp.gr.java_conf.datingapp.dialogs.DialogManager;
+import jp.gr.java_conf.datingapp.models.Chat;
 import jp.gr.java_conf.datingapp.progressbar.SaveProgressButton;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
@@ -56,38 +64,43 @@ import static android.app.Activity.RESULT_OK;
  * A simple {@link Fragment} subclass.
  */
 public class ProfileFragment extends Fragment {
-    private static final int REQUEST_CODE = 100;
+    private static final int REQUEST_CODE1 = 100;
+    private static final int REQUEST_CODE2 = 101;
+    private static final int REQUEST_CODE3 = 102;
 
     private CircleImageView mImg;
+    private CircleImageView mImg2;
+    private CircleImageView mImg3;
     private EditText mName;
     private EditText mJob;
     private EditText mHobby;
     private EditText mLang;
     private EditText mDesc;
+    private TextView mQuit;
     private ChipGroup mHobbyGroup;
     private ChipGroup mLangGroup;
     private Set<String> mHobbyList;
     private Set<String> mLangList;
     private CardView mSaveProfile;
-    private Uri url = null;
     private static final int RESULT_LOAD_IMG = 1212;
     private FirebaseAuth mAuth;
     private FirebaseFirestore mStore;
     private StorageReference mStorage;
+    private String uid;
 
     public ProfileFragment() {
-        // Required empty public constructor
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
 
         View view = inflater.inflate(R.layout.fragment_profile, container, false);
         CloseKeyboard.setupUI(view.findViewById(R.id.constraint_profile), getActivity());
 
         mImg = view.findViewById(R.id.pro_image);
+        mImg2 = view.findViewById(R.id.pro_image2);
+        mImg3 = view.findViewById(R.id.pro_image3);
         mName = view.findViewById(R.id.pro_name);
         mJob = view.findViewById(R.id.pro_job);
         mLang = view.findViewById(R.id.pro_lang);
@@ -96,25 +109,257 @@ public class ProfileFragment extends Fragment {
         mHobbyGroup = view.findViewById(R.id.chip_hobby);
         mLangGroup = view.findViewById(R.id.chip_lang);
         mSaveProfile = view.findViewById(R.id.save);
+        mQuit = view.findViewById(R.id.quit);
 
         mAuth = FirebaseAuth.getInstance();
         mStore = FirebaseFirestore.getInstance();
         mStorage = FirebaseStorage.getInstance().getReference();
+        uid = mAuth.getCurrentUser().getUid();
 
         mHobbyList = new HashSet<>();
         mLangList = new HashSet<>();
 
         getProfileData();
 
-        mImg.setOnClickListener(new View.OnClickListener(){
-
+        mQuit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-//                photoPickerIntent.setType("image/*");
-//                startActivityForResult(photoPickerIntent, RESULT_LOAD_IMG);
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle(getString(R.string.quit))
+                        .setMessage(getString(R.string.quit_sentence))
+                        .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                Map<String, Object> map = new HashMap<>();
+                                map.put("account_flg", false);
+                                mStore.collection("Users").document(uid).set(map, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        final FirebaseDatabase database = FirebaseDatabase.getInstance();
+                                        final DatabaseReference myRef = database.getReference("/status/" + mAuth.getCurrentUser().getUid());
+
+                                        Map<String, Object> isOfflineForDatabase = new HashMap<>();
+                                        isOfflineForDatabase.put("state", "offline");
+                                        isOfflineForDatabase.put("last_changed", ServerValue.TIMESTAMP);
+
+                                        myRef.setValue(isOfflineForDatabase);
+                                        DatabaseReference reference = FirebaseDatabase.getInstance().getReference().child("/account/" + uid);
+                                        Map<String, Object> map = new HashMap<>();
+                                        map.put("account_flg", false);
+                                        reference.setValue(map);
+
+                                        FirebaseAuth.getInstance().signOut();
+                                        LoginManager.getInstance().logOut();
+
+                                        Intent intent = new Intent(getContext(), MainActivity.class);
+                                        startActivity(intent);
+                                        getActivity().finish();
+
+                                        Toast.makeText(getContext(), getString(R.string.quit_done), Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            }
+                        })
+                        .setNegativeButton(getString(R.string.no), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.dismiss();
+                            }
+                        });
+
+                builder.create().show();
+            }
+        });
+
+        mImg.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
                 Intent intent = new Intent(getActivity(), ImageActivity.class);
-                startActivityForResult(intent, REQUEST_CODE);
+                startActivityForResult(intent, REQUEST_CODE1);
+            }
+        });
+
+        mImg2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getActivity(), ImageActivity.class);
+                startActivityForResult(intent, REQUEST_CODE2);
+            }
+        });
+
+        mImg2.setLongClickable(true);
+        mImg2.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                mStore.collection("Users").document(uid).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        if (documentSnapshot.get("img_url2") != null) {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                            builder.setItems(getResources().getStringArray(R.array.image_select), new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int position) {
+                                    if (position == 0) {
+                                        mStore.collection("Users").document(uid).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                            @Override
+                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                if (documentSnapshot.get("img_url") != null) {
+                                                    Glide.with(getContext()).load(documentSnapshot.get("img_url")).into(mImg2);
+                                                    Glide.with(getContext()).load(documentSnapshot.get("img_url2")).into(mImg);
+                                                    Map<String, Object> map = new HashMap<>();
+                                                    map.put("img_url", documentSnapshot.get("img_url2"));
+                                                    map.put("img_url2", documentSnapshot.get("img_url"));
+                                                    mStore.collection("Users").document(uid).set(map, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        @Override
+                                                        public void onSuccess(Void aVoid) {
+                                                            System.out.println("入れ替えました");
+                                                            replaceImageForChat(uid, (String) documentSnapshot.get("img_url2"));
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        });
+                                    } else if (position == 1) {
+                                        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                        builder.setMessage(R.string.delete_image)
+                                                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                                        System.out.println("はい");
+                                                        DocumentReference docRef = mStore.collection("Users").document(uid);
+                                                        Map<String, Object> updates = new HashMap<>();
+                                                        updates.put("img_url2", FieldValue.delete());
+
+                                                        docRef.update(updates).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void aVoid) {
+                                                                mStore.collection("Users").document(uid).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                    @Override
+                                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                        if (documentSnapshot.get("img_url3") != null) {
+                                                                            Glide.with(getContext()).load(documentSnapshot.get("img_url3")).into(mImg2);
+                                                                            mImg3.setImageDrawable(getResources().getDrawable(R.drawable.avatornew));
+                                                                            Map<String, Object> map = new HashMap<>();
+                                                                            map.put("img_url2", documentSnapshot.get("img_url3"));
+                                                                            map.put("img_url3", FieldValue.delete());
+                                                                            mStore.collection("Users").document(uid).set(map, SetOptions.merge())
+                                                                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                        @Override
+                                                                                        public void onSuccess(Void aVoid) {
+                                                                                            System.out.println("削除完了");
+                                                                                        }
+                                                                                    });
+                                                                        } else {
+                                                                            mImg2.setImageDrawable(getResources().getDrawable(R.drawable.avatornew));
+                                                                            System.out.println("削除完了");
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                    }
+                                                })
+                                                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                                        dialogInterface.dismiss();
+                                                    }
+                                                });
+                                        AlertDialog dialog = builder.create();
+                                        dialog.show();
+                                    }
+                                }
+                            });
+                            AlertDialog dialog = builder.create();
+                            dialog.show();
+                        }
+                    }
+                });
+                return true;
+            }
+        });
+
+        mImg3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getActivity(), ImageActivity.class);
+                startActivityForResult(intent, REQUEST_CODE3);
+            }
+        });
+        mImg3.setLongClickable(true);
+        mImg3.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                mStore.collection("Users").document(uid).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        if (documentSnapshot.get("img_url3") != null) {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                            builder.setItems(getResources().getStringArray(R.array.image_select), new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int position) {
+                                    if (position == 0) {
+                                        mStore.collection("Users").document(uid).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                            @Override
+                                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                if (documentSnapshot.get("img_url") != null) {
+                                                    Glide.with(getContext()).load(documentSnapshot.get("img_url")).into(mImg3);
+                                                    Glide.with(getContext()).load(documentSnapshot.get("img_url3")).into(mImg);
+                                                    Map<String, Object> map = new HashMap<>();
+                                                    map.put("img_url", documentSnapshot.get("img_url3"));
+                                                    map.put("img_url3", documentSnapshot.get("img_url"));
+                                                    mStore.collection("Users").document(uid).set(map, SetOptions.merge()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        @Override
+                                                        public void onSuccess(Void aVoid) {
+                                                            System.out.println("入れ替えました");
+                                                            replaceImageForChat(uid, (String) documentSnapshot.get("img_url3"));
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        });
+                                    } else if (position == 1) {
+                                        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                        builder.setMessage(R.string.delete_image)
+                                                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                                        System.out.println("はい");
+                                                        DocumentReference docRef = mStore.collection("Users").document(uid);
+                                                        Map<String, Object> updates = new HashMap<>();
+                                                        updates.put("img_url3", FieldValue.delete());
+
+                                                        docRef.update(updates).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void aVoid) {
+                                                                mStore.collection("Users").document(uid).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                                                                    @Override
+                                                                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                                                        mImg3.setImageDrawable(getResources().getDrawable(R.drawable.avatornew));
+                                                                        System.out.println("削除完了");
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                    }
+                                                })
+                                                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                                        dialogInterface.dismiss();
+                                                    }
+                                                });
+                                        AlertDialog dialog = builder.create();
+                                        dialog.show();
+                                    }
+                                }
+                            });
+                            AlertDialog dialog = builder.create();
+                            dialog.show();
+                        }
+                    }
+                });
+                return true;
             }
         });
 
@@ -124,8 +369,8 @@ public class ProfileFragment extends Fragment {
         view.findViewById(R.id.logout).setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
-                LogoutProgressButton button = new LogoutProgressButton(view);
-                button.buttonActivated();
+//                LogoutProgressButton button = new LogoutProgressButton(view);
+//                button.buttonActivated();
                 final FirebaseDatabase database = FirebaseDatabase.getInstance();
                 final DatabaseReference myRef = database.getReference("/status/" + mAuth.getCurrentUser().getUid());
 
@@ -142,8 +387,8 @@ public class ProfileFragment extends Fragment {
                 startActivity(intent);
                 getActivity().finish();
 
-                Toast.makeText(getContext(), "ログアウトしました", Toast.LENGTH_SHORT).show();
-                button.buttonFinished();
+                Toast.makeText(getContext(), getString(R.string.logout_done), Toast.LENGTH_SHORT).show();
+//                button.buttonFinished();
             }
         });
 
@@ -152,44 +397,15 @@ public class ProfileFragment extends Fragment {
             public void onClick(View view) {
                 final SaveProgressButton save = new SaveProgressButton(view, false);
                 save.buttonActivated();
-                Long tsLong = System.currentTimeMillis()/1000;
-                String ts = tsLong.toString();
-                if (url != null) {
-                    mStorage.child(ts + "/").putFile(url).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                        @Override
-                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-//                        String downloadUrl = taskSnapshot.getStorage().getDownloadUrl().toString();
-//                        Log.i("TAG", "onSuccess" + downloadUrl);
-                            Task<Uri> res = taskSnapshot.getStorage().getDownloadUrl();
-                            res.addOnSuccessListener(new OnSuccessListener<Uri>() {
-                                @Override
-                                public void onSuccess(Uri uri) {
-                                    String downloadUrl = uri.toString();
-                                    Map<String, Object> map = new HashMap<>();
-                                    map.put("name", mName.getText().toString());
-                                    map.put("job", mJob.getText().toString());
-                                    map.put("hobby", joinString(mHobbyList));
-                                    map.put("lang", joinString(mLangList));
-                                    map.put("desc", mDesc.getText().toString());
-                                    map.put("img_url", downloadUrl);
-                                    saveUserData(map, save);
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("name", mName.getText().toString());
-                    map.put("job", mJob.getText().toString());
-                    map.put("hobby", joinString(mHobbyList));
-                    map.put("lang", joinString(mLangList));
-                    map.put("desc", mDesc.getText().toString());
-                    saveUserData(map, save);
-                }
+                Map<String, Object> map = new HashMap<>();
+                map.put("name", mName.getText().toString());
+                map.put("job", mJob.getText().toString());
+                map.put("hobby", joinString(mHobbyList));
+                map.put("lang", joinString(mLangList));
+                map.put("desc", mDesc.getText().toString());
+                saveUserData(map, save);
             }
         });
-
-
         return view;
     }
 
@@ -204,14 +420,22 @@ public class ProfileFragment extends Fragment {
                     String desc = task.getResult().getString("desc");
                     String hobby = task.getResult().getString("hobby");
                     String img_url = task.getResult().getString("img_url");
+                    String img_url2 = task.getResult().getString("img_url2");
+                    String img_url3 = task.getResult().getString("img_url3");
                     String lang = task.getResult().getString("lang");
                     mName.setText(name);
                     mJob.setText(job);
                     mDesc.setText(desc);
                     mHobbyList = hobby == null ? mHobbyList : new HashSet<>(Arrays.asList(hobby.split("\\s*,\\s*")));
                     mLangList = lang == null ? mLangList : new HashSet<>(Arrays.asList(lang.split("\\s*,\\s*")));
-                    if (img_url != null && getContext() != null) {
+                    if (img_url != null) {
                         Glide.with(getContext()).load(img_url).into(mImg);
+                    }
+                    if (img_url2 != null) {
+                        Glide.with(getContext()).load(img_url2).into(mImg2);
+                    }
+                    if (img_url3 != null) {
+                        Glide.with(getContext()).load(img_url3).into(mImg3);
                     }
 
                     setListener(mHobby, mHobbyList, mHobbyGroup);
@@ -241,15 +465,54 @@ public class ProfileFragment extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_CODE) {
+            if (requestCode == REQUEST_CODE1) {
                 if (data != null) {
-                    System.out.println("onActivityResult in ProfileFragment");
-                    System.out.println(data.getStringExtra("image_uri"));
                     final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
                     if (imageUri != null) {
-                        url = imageUri;
                         Glide.with(getContext()).load(imageUri).into(mImg);
+                        saveImage("img_url", imageUri, uid, true);
                     }
+                }
+            } else if (requestCode == REQUEST_CODE2) {
+                if (data != null) {
+                    final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
+                    if (imageUri != null) {
+                        mStore.collection("Users").document(uid).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                if (documentSnapshot.get("img_url") == null) {
+                                    Glide.with(getContext()).load(imageUri).into(mImg);
+                                    saveImage("img_url", imageUri, uid, true);
+                                } else {
+                                    Glide.with(getContext()).load(imageUri).into(mImg2);
+                                    saveImage("img_url2", imageUri, uid, false);
+                                }
+                            }
+                        });
+                    }
+
+                }
+            } else if (requestCode == REQUEST_CODE3) {
+                if (data != null) {
+                    final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
+                    if (imageUri != null) {
+                        mStore.collection("Users").document(uid).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                            @Override
+                            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                                if (documentSnapshot.get("img_url") == null) {
+                                    Glide.with(getContext()).load(imageUri).into(mImg);
+                                    saveImage("img_url", imageUri, uid, true);
+                                } else if (documentSnapshot.get("img_url2") == null) {
+                                    Glide.with(getContext()).load(imageUri).into(mImg2);
+                                    saveImage("img_url2", imageUri, uid, false);
+                                } else {
+                                    Glide.with(getContext()).load(imageUri).into(mImg3);
+                                    saveImage("img_url3", imageUri, uid, false);
+                                }
+                            }
+                        });
+                    }
+
                 }
             }
         }else {
@@ -276,6 +539,37 @@ public class ProfileFragment extends Fragment {
 
     }
 
+    private void replaceImageForChat(String uid, String stringUri) {
+//        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Chats");
+//        reference.addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+//                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+//                    if (snapshot.child("from").getValue().equals(uid)) {
+//                        String key = snapshot.getKey();
+//                        Chat chat = snapshot.getValue(Chat.class);
+//                        chat.setSeen((Boolean) snapshot.child("isSeen").getValue());
+//                        chat.setFirstMessageOfTheDay((Boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
+//                        chat.setMy_img(stringUri);
+//                        Map<String, Object> chatMap = Chat.toMap(chat);
+//                        Map<String, Object> chatUpdates = new HashMap<>();
+//                        chatUpdates.put(key, chatMap);
+//                        reference.updateChildren(chatUpdates);
+//                    }
+//                }
+//            }
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//
+//            }
+//        });
+        DatabaseReference profileRef = FirebaseDatabase.getInstance().getReference("/ProfileImage/" + uid);
+        Map<String, Object> map = new HashMap<>();
+        map.put("img_url", stringUri);
+        map.put("change_time", System.currentTimeMillis());
+        profileRef.setValue(map);
+    }
+
     private void displayChipData(final Set<String> chipList, final ChipGroup chipGroup) {
         chipGroup.removeAllViews();
         for (String s : chipList) {
@@ -294,7 +588,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void saveUserData(Map<String, Object> map, final SaveProgressButton save) {
-        mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
+        mStore.collection("Users").document(uid)
                 .set(map, SetOptions.merge())
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
@@ -303,5 +597,41 @@ public class ProfileFragment extends Fragment {
                         save.buttonFinished();
                     }
                 });
+    }
+
+    private void saveImage(String key, Uri value, String uid, boolean isMainChanged) {
+        Long tsLong = System.currentTimeMillis()/1000;
+        String ts = tsLong.toString();
+        mStorage.child(ts + "/").putFile(value).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                Task<Uri> res = taskSnapshot.getStorage().getDownloadUrl();
+                res.addOnSuccessListener(new OnSuccessListener<Uri>() {
+                    @Override
+                    public void onSuccess(Uri uri) {
+                        String downloadUrl = uri.toString();
+                        Map<String, String> map = new HashMap<>();
+                        map.put(key, downloadUrl);
+                        mStore.collection("Users").document(uid)
+                                .set(map, SetOptions.merge())
+                                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<Void> task) {
+                                        if (task.isSuccessful()) {
+                                            Toast.makeText(getContext(), getString(R.string.save_image), Toast.LENGTH_SHORT).show();
+                                            if (isMainChanged) {
+                                                replaceImageForChat(uid, downloadUrl);
+                                            }
+                                        } else {
+                                            DialogManager dialog = new DialogManager(getString(R.string.not_save_image));
+                                            assert getFragmentManager() != null;
+                                            dialog.show(getFragmentManager(),"Image not saved.");
+                                        }
+                                    }
+                                });
+                    }
+                });
+            }
+        });
     }
 }

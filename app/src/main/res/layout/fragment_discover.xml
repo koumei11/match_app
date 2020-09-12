@@ -7,7 +7,19 @@
     android:layout_width="match_parent"
     tools:context=".fragments.DiscoverFragment">
 
+    <TextView
+        android:id="@+id/no_member"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="お相手がいません。"
+        android:textColor="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="@+id/frameLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/frameLayout" />
+
     <FrameLayout
+        android:id="@+id/frameLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -48,7 +60,9 @@
         <com.mindorks.placeholderview.SwipePlaceHolderView
             android:id="@+id/swipeView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent">
+
+        </com.mindorks.placeholderview.SwipePlaceHolderView>
     </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

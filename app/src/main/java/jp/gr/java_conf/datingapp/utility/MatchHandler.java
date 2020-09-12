@@ -32,7 +32,6 @@ public class MatchHandler {
                         if (task.isSuccessful()) {
                             if(task.getResult() != null && task.getResult().getData() != null) {
                                 current_user = task.getResult().getString("name");
-                                current_image = task.getResult().getString("img_url");
                                 mStore.collection("Users").document(docId).get()
                                         .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                                             @Override
@@ -40,20 +39,15 @@ public class MatchHandler {
                                                 if (task.isSuccessful()) {
                                                     if (task.getResult() != null && task.getResult().getData() != null) {
                                                         receiver_name = task.getResult().getString("name");
-                                                        receiver_image = task.getResult().getString("img_url");
                                                         map.put("name", receiver_name);
-                                                        map.put("img_url", receiver_image);
                                                         map.put("time_stamp", new Date().getTime());
-                                                        map.put("isBlock", false);
                                                         mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
                                                                 .collection("Match").document(docId).set(map).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                             @Override
                                                             public void onComplete(@NonNull Task<Void> task) {
                                                                 map.put("user_id", mAuth.getCurrentUser().getUid());
                                                                 map.put("name", current_user);
-                                                                map.put("img_url", current_image);
                                                                 map.put("time_stamp", new Date().getTime());
-                                                                map.put("isBlock", false);
                                                                 if (task.isSuccessful()) {
                                                                     mStore.collection("Users").document(docId)
                                                                             .collection("Match").document(mAuth.getCurrentUser().getUid()).set(map).addOnCompleteListener(new OnCompleteListener<Void>() {

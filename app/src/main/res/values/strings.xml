@@ -56,6 +56,21 @@
     <string name="another_image">別の写真を選択してください。</string>
     <string name="select_image">写真を選んでください。</string>
     <string name="crop_image">写真を切り取り</string>
+    <string name="save_image">写真を保存しました。</string>
+    <string name="delete_image">この写真を削除してもよろしいですか？</string>
+    <string name="not_save_image">写真を保存できませんでした。</string>
+    <string name="close">閉じる</string>
+    <string name="quit">退会する</string>
+    <string name="quit_sentence">本当に退会してもよろしいでしょうか？</string>
+    <string name="welcome_back">おかえりなさい！</string>
+    <string name="enter_address">居住地を入力してください</string>
+    <string name="logout_done">ログアウトしました。</string>
+    <string name="quit_done">退会処理が完了しました。</string>
+    <string name="no_message">メッセージがありません。</string>
+    <string name="during_chat">会話中のお相手</string>
+    <string name="send_image">画像が送信されました。</string>
+    <string name="channel1">Channel1</string>
+    <string name="notify_message">新規にメッセージがあった場合に通知を表示します</string>
     <string-array name="address_list">
         <item>Apple</item>
         <item>Banana</item>
@@ -85,5 +100,9 @@
     <string-array name="image_picks">
         <item>写真を撮る</item>
         <item>ライブラリから</item>
+    </string-array>
+    <string-array name="image_select">
+        <item>メイン写真と入れ替える</item>
+        <item>写真を削除する</item>
     </string-array>
 </resources>

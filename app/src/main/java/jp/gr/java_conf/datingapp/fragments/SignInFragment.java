@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
@@ -20,9 +21,18 @@ import com.facebook.CallbackManager;
 import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import jp.gr.java_conf.datingapp.HomeActivity;
 import jp.gr.java_conf.datingapp.R;
@@ -48,6 +58,7 @@ public class SignInFragment extends Fragment {
     private EditText mEmail;
     private EditText mPassword;
     private FirebaseAuth mAuth;
+    private FirebaseFirestore mStore;
     private CardView mLoginBtn;
     private ConstraintLayout mLayout;
     private CallbackManager mCallbackManager;
@@ -113,6 +124,7 @@ public class SignInFragment extends Fragment {
         mLoginBtn = view.findViewById(R.id.signin_card_view);
         mLayout = view.findViewById(R.id.signin_constraint_layout);
         mAuth = FirebaseAuth.getInstance();
+        mStore = FirebaseFirestore.getInstance();
 
         mEmail.addTextChangedListener(mTextWatcher);
         mPassword.addTextChangedListener(mTextWatcher);
@@ -160,9 +172,33 @@ public class SignInFragment extends Fragment {
     }
 
     private void changeActivity() {
-        Intent intent = new Intent(getContext(), HomeActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                if (!(boolean) documentSnapshot.get("account_flg")) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("account_flg", true);
+                    mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).set(map, SetOptions.merge())
+                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    DatabaseReference reference = FirebaseDatabase.getInstance().getReference().child("/account/" + mAuth.getCurrentUser().getUid());
+                                    Map<String, Object> map = new HashMap<>();
+                                    map.put("account_flg", true);
+                                    reference.setValue(map);
+                                    Toast.makeText(getContext(), getString(R.string.welcome_back), Toast.LENGTH_LONG).show();
+                                    Intent intent = new Intent(getContext(), HomeActivity.class);
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                    startActivity(intent);
+                                }
+                            });
+                } else {
+                    Intent intent = new Intent(getContext(), HomeActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                }
+            }
+        });
     }
 
     private void checkFieldsForEmptyValues() {
