@@ -36,9 +36,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import jp.gr.java_conf.datingapp.dialogs.AddressDialog;
-import jp.gr.java_conf.datingapp.dialogs.DialogManager;
-import jp.gr.java_conf.datingapp.fragments.DatePickFragment;
+import jp.gr.java_conf.datingapp.dialog.AddressDialog;
+import jp.gr.java_conf.datingapp.dialog.DialogManager;
+import jp.gr.java_conf.datingapp.fragment.DatePickFragment;
 import jp.gr.java_conf.datingapp.progressbar.SaveProgressButton;
 import jp.gr.java_conf.datingapp.utility.AgeCalculation;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
@@ -55,6 +55,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
     private Uri url = null;
     private CardView mStartBtn;
     private ConstraintLayout mLayout;
+    private DatabaseReference userRef;
     private Activity mActivity;
     private static final int RESULT_LOAD_IMG = 1212;
     private FirebaseFirestore mStore;
@@ -89,6 +90,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         mJob = findViewById(R.id.new_job);
         mStartBtn = findViewById(R.id.save);
         mLayout = findViewById(R.id.pro_save_layout);
+        userRef = FirebaseDatabase.getInstance().getReference().child("Users");
 
         mAuth = FirebaseAuth.getInstance();
         mStore = FirebaseFirestore.getInstance();

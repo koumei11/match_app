@@ -1,13 +1,7 @@
 package jp.gr.java_conf.datingapp;
 
 import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
@@ -16,7 +10,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.viewpager.widget.ViewPager;
@@ -25,7 +18,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -33,24 +25,17 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import jp.gr.java_conf.datingapp.adapters.HomeViewPagerAdapter;
-import jp.gr.java_conf.datingapp.fragments.ChatFragment;
-import jp.gr.java_conf.datingapp.fragments.DiscoverFragment;
-import jp.gr.java_conf.datingapp.fragments.ProfileFragment;
-import jp.gr.java_conf.datingapp.models.Chat;
+import jp.gr.java_conf.datingapp.adapter.HomeViewPagerAdapter;
+import jp.gr.java_conf.datingapp.fragment.ChatFragment;
+import jp.gr.java_conf.datingapp.fragment.DiscoverFragment;
+import jp.gr.java_conf.datingapp.fragment.ProfileFragment;
+import jp.gr.java_conf.datingapp.model.Chat;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
-import jp.gr.java_conf.datingapp.utility.DateTimeConverter;
 
 public class HomeActivity extends AppCompatActivity {
-
-    private static final int SEND_NOTIFICATION = 1;
-    private static final int REQUEST_CODE = 100;
-    private static final String CHANNEL_ID = "channel_1";
 
     private ViewPager mViewPager;
     private TabLayout mHomeTabs;
@@ -86,7 +71,6 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         CloseKeyboard.setupUI(findViewById(R.id.constraint_home), this);
-        createNotificationChannel();
 
         mAuth = FirebaseAuth.getInstance();
         uid = mAuth.getCurrentUser().getUid();
@@ -225,41 +209,6 @@ public class HomeActivity extends AppCompatActivity {
 //
 //            }
 //        });
-    }
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = getString(R.string.channel1);
-            String description = getString(R.string.notify_message);
-            int importance = NotificationManager.IMPORTANCE_LOW;
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-        }
-    }
-
-    private void sendNotification(String senderName,
-                                  String receivedMessage,
-                                  String receivedTime) {
-        int notificationId = SEND_NOTIFICATION;
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
-                REQUEST_CODE,
-                new Intent(HomeActivity.this, HomeActivity.class),
-                PendingIntent.FLAG_UPDATE_CURRENT
-        );
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.heart1)
-                .setContentTitle(senderName)
-                .setContentText(receivedMessage)
-                .setAutoCancel(true);
-        notificationBuilder.setContentIntent(pendingIntent);
-        Notification notification = notificationBuilder.build();
-        notification.flags = Notification.DEFAULT_LIGHTS | Notification.FLAG_AUTO_CANCEL;
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(notificationId, notification);
     }
 
     @Override

@@ -1,13 +1,11 @@
-package jp.gr.java_conf.datingapp.adapters;
+package jp.gr.java_conf.datingapp.adapter;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
 import android.net.Uri;
-import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,7 +28,7 @@ import java.util.Set;
 import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.UserDetailActivity;
-import jp.gr.java_conf.datingapp.models.Chat;
+import jp.gr.java_conf.datingapp.model.Chat;
 import jp.gr.java_conf.datingapp.utility.WeekDayConverter;
 import jp.gr.java_conf.datingapp.utility.WindowSizeGetter;
 
@@ -168,8 +166,8 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 });
             }
             receiverViewHolder.messageDate.setText(sdFormat3.format(new Date(mChatList.get(position).getTime_stamp())));
-            if (mChatList.get(position).getMy_img() != null && !mChatList.get(position).getMy_img().equals("")) {
-                Uri url = Uri.parse(mChatList.get(position).getMy_img());
+            if (mChatList.get(position).getProfile().getImg_url() != null) {
+                Uri url = Uri.parse(mChatList.get(position).getProfile().getImg_url());
                 Glide.with(mContext).load(url).into(receiverViewHolder.mImageView);
             }
             if (mChatList.get(position).isFirstMessageOfTheDay()) {

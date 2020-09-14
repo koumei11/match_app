@@ -26,6 +26,7 @@ import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.AdditionalUserInfo;
@@ -33,15 +34,21 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FacebookAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 
 import org.json.JSONException;
 
-import jp.gr.java_conf.datingapp.adapters.ViewPagerAdapter;
-import jp.gr.java_conf.datingapp.dialogs.DialogManager;
-import jp.gr.java_conf.datingapp.fragments.SignInFragment;
-import jp.gr.java_conf.datingapp.fragments.SignUpFragment;
+import java.util.Objects;
+
+import jp.gr.java_conf.datingapp.adapter.ViewPagerAdapter;
+import jp.gr.java_conf.datingapp.dialog.DialogManager;
+import jp.gr.java_conf.datingapp.fragment.SignInFragment;
+import jp.gr.java_conf.datingapp.fragment.SignUpFragment;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
 
@@ -55,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
     private ViewPagerAdapter adapter;
     private FirebaseAuth mAuth;
     private FirebaseFirestore mStore;
+    private DatabaseReference userRef;
     private CallbackManager mCallbackManager;
     private Context mContext;
     private LoginButton mLoginButton;
@@ -67,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mContext = this;
+        userRef = FirebaseDatabase.getInstance().getReference().child("Users");
         mTabPosition = getSharedPreferences("Data", MODE_PRIVATE);
         mPositionEditor = mTabPosition.edit();
         mPositionEditor.putInt("position", 10);
@@ -159,7 +168,18 @@ public class MainActivity extends AppCompatActivity {
                                                                 @Override
                                                                 public void onComplete(@NonNull Task<AuthResult> task) {
                                                                     if (task.isSuccessful()) {
-                                                                        AdditionalUserInfo info = task.getResult().getAdditionalUserInfo();
+                                                                        String uid = mAuth.getCurrentUser().getUid();
+                                                                        FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
+                                                                            @Override
+                                                                            public void onSuccess(InstanceIdResult instanceIdResult) {
+                                                                                String deviceToken = instanceIdResult.getToken();
+                                                                                System.out.println("トークン");
+                                                                                System.out.println(deviceToken);
+                                                                                userRef.child(uid).child("device_token")
+                                                                                        .setValue(deviceToken);
+                                                                            }
+                                                                        });
+                                                                        AdditionalUserInfo info = Objects.requireNonNull(task.getResult()).getAdditionalUserInfo();
                                                                         if (info != null) {
                                                                             if (info.isNewUser()) {
                                                                                 editProfile();

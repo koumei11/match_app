@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.adapters;
+package jp.gr.java_conf.datingapp.adapter;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -18,7 +18,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -27,6 +26,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.database.annotations.NotNull;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.text.ParseException;
 import java.util.Date;
@@ -37,10 +37,10 @@ import java.util.Map;
 import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.ChatActivity;
 import jp.gr.java_conf.datingapp.R;
-import jp.gr.java_conf.datingapp.models.Chat;
-import jp.gr.java_conf.datingapp.models.Match;
-import jp.gr.java_conf.datingapp.models.Profile;
-import jp.gr.java_conf.datingapp.models.UserState;
+import jp.gr.java_conf.datingapp.model.Chat;
+import jp.gr.java_conf.datingapp.model.Match;
+import jp.gr.java_conf.datingapp.model.Profile;
+import jp.gr.java_conf.datingapp.model.UserState;
 import jp.gr.java_conf.datingapp.utility.AgeCalculation;
 import jp.gr.java_conf.datingapp.utility.DateTimeConverter;
 
@@ -161,7 +161,9 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
                             System.out.println("はい");
-                            blockUser(mChatList.get(position - 1).getUser_id());
+                            Map<String, Object> map = new HashMap<>();
+                            map.put("isBlock", true);
+                            blockUser(mChatList.get(position - 1).getUser_id(), map);
                         }
                     });
                     builder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
@@ -227,12 +229,26 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
         });
     }
 
-    private void blockUser(String uid) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("blocked_user_id", uid);
-        map.put("block_user_id", myId);
-        map.put("isBlock", true);
-        blockRef.child("Block").push().setValue(map);
+    private void blockUser(String uid, Map<String, Object> block) {
+        mStore.collection("Users").document(uid).collection("Match")
+                .document(myId).set(block, SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        mStore.collection("Users").document(myId)
+                                .collection("Match").document(uid).set(block, SetOptions.merge())
+                                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        Map<String, Object> map = new HashMap<>();
+                                        map.put("blocked_user_id", uid);
+                                        map.put("block_user_id", myId);
+                                        map.put("isBlock", true);
+                                        blockRef.child("Block").push().setValue(map);
+                                    }
+                                });
+                    }
+                });
     }
 
     private void showMessage(String uid, TextView mSentDate, TextView mNewestMessage) {

@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.models;
+package jp.gr.java_conf.datingapp.model;
 
 import android.app.Activity;
 import android.content.Context;
@@ -23,11 +23,10 @@ import com.mindorks.placeholderview.annotations.swipe.SwipeIn;
 import com.mindorks.placeholderview.annotations.swipe.SwipeInState;
 import com.mindorks.placeholderview.annotations.swipe.SwipeOut;
 import com.mindorks.placeholderview.annotations.swipe.SwipeOutState;
-import com.mindorks.placeholderview.annotations.swipe.SwipeTouch;
 
 import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.UserDetailActivity;
-import jp.gr.java_conf.datingapp.interfaces.SelectedListener;
+import jp.gr.java_conf.datingapp.listener.SelectedListener;
 
 @Layout(R.layout.swipe_card_view)
 public class SwipeCard {

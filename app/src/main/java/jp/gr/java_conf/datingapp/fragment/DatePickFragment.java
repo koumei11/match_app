@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.fragments;
+package jp.gr.java_conf.datingapp.fragment;
 
 import android.app.DatePickerDialog;
 import android.app.Dialog;

@@ -41,6 +41,7 @@ public class MatchHandler {
                                                         receiver_name = task.getResult().getString("name");
                                                         map.put("name", receiver_name);
                                                         map.put("time_stamp", new Date().getTime());
+                                                        map.put("isBlock", false);
                                                         mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
                                                                 .collection("Match").document(docId).set(map).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                             @Override
@@ -48,6 +49,7 @@ public class MatchHandler {
                                                                 map.put("user_id", mAuth.getCurrentUser().getUid());
                                                                 map.put("name", current_user);
                                                                 map.put("time_stamp", new Date().getTime());
+                                                                map.put("isBlock", false);
                                                                 if (task.isSuccessful()) {
                                                                     mStore.collection("Users").document(docId)
                                                                             .collection("Match").document(mAuth.getCurrentUser().getUid()).set(map).addOnCompleteListener(new OnCompleteListener<Void>() {

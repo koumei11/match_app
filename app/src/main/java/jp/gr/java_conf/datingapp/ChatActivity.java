@@ -49,9 +49,9 @@ import java.util.List;
 import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import jp.gr.java_conf.datingapp.adapters.ChatRecyclerAdapter;
-import jp.gr.java_conf.datingapp.models.Chat;
-import jp.gr.java_conf.datingapp.models.Profile;
+import jp.gr.java_conf.datingapp.adapter.ChatRecyclerAdapter;
+import jp.gr.java_conf.datingapp.model.Chat;
+import jp.gr.java_conf.datingapp.model.Profile;
 import jp.gr.java_conf.datingapp.utility.WindowSizeGetter;
 
 public class ChatActivity extends AppCompatActivity {
@@ -78,7 +78,7 @@ public class ChatActivity extends AppCompatActivity {
     private ValueEventListener seenListener;
     List<Chat> mChatList;
     View view;
-    Profile userProfile;
+    Profile userProfile, myProfile;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -140,8 +140,8 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 if (task.isSuccessful() && task.getResult() != null) {
-                    Profile profile = task.getResult().toObject(Profile.class);
-                    myImg = profile.getImg_url();
+                    myProfile = task.getResult().toObject(Profile.class);
+                    myImg = myProfile.getImg_url();
                 }
             }
         });
@@ -219,8 +219,14 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-        readMessage(toId, userProfile);
-        seenMessage(toId);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                seenMessage(toId);
+                readMessage(toId, userProfile);
+            }
+        }).start();
+
 
         mSend.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -275,6 +281,7 @@ public class ChatActivity extends AppCompatActivity {
                         snapshot.getRef().updateChildren(hashMap);
                     }
                 }
+
             }
 
             @Override
@@ -298,16 +305,15 @@ public class ChatActivity extends AppCompatActivity {
                         if ((chat.getFrom().equals(mAuth.getCurrentUser().getUid()) || chat.getFrom().equals(toId)) &&
                                 (chat.getTo().equals(mAuth.getCurrentUser().getUid()) || chat.getTo().equals(toId))) {
                             // isFirstMessageOfTheDayとisSeenが上手くマッピングできないためここで直接代入
-                            chat.setFirstMessageOfTheDay((Boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
-                            chat.setSeen((Boolean) snapshot.child("isSeen").getValue());
+                            chat.setFirstMessageOfTheDay((boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
+                            chat.setSeen((boolean) snapshot.child("isSeen").getValue());
                             chat.setProfile(profile);
                             mChatList.add(chat);
                         }
-
-                        mChatRecyclerView.setAdapter(mChatRecyclerAdapter);
-                        mChatRecyclerAdapter.notifyDataSetChanged();
                     }
                 }
+                mChatRecyclerView.setAdapter(mChatRecyclerAdapter);
+                mChatRecyclerAdapter.notifyDataSetChanged();
             }
 
             @Override
@@ -320,7 +326,17 @@ public class ChatActivity extends AppCompatActivity {
     private void sendMessage(String message, String image, String myId, String toId, Uri imageUri) {
         mChatText.setText("");
         Map<String, Object> map = new HashMap<>();
+        Map<String, Object> notificationMap = new HashMap<>();
+        notificationMap.put("from", myId);
+        notificationMap.put("name", myProfile.getName());
+        if (message != null) {
+            notificationMap.put("message", message);
+        } else if (imageUri != null) {
+            notificationMap.put("url", imageUri);
+        }
+
         DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
+        reference.child("Notification").child(toId).push().setValue(notificationMap);
 
         if (imageUri != null) {
             Long tsLong = System.currentTimeMillis()/1000;
@@ -352,7 +368,14 @@ public class ChatActivity extends AppCompatActivity {
                                 map.put("isFirstMessageOfTheDay", true);
                             }
                             mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
-                            reference.child("Chats").push().setValue(map);
+//                            reference.child("Chats").push().setValue(map);
+
+                            mStore.collection("Chats").document().set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    System.out.println("Added to Firestore");
+                                }
+                            });
                         }
                     });
                 }
@@ -363,8 +386,8 @@ public class ChatActivity extends AppCompatActivity {
             map.put("my_img", image);
             map.put("from", myId);
             map.put("to", toId);
-            map.put("isSeen", false);
             map.put("time_stamp", new Date().getTime());
+            map.put("isSeen", false);
             if (mChatList.size() > 0) {
                 java.sql.Date date1 = new java.sql.Date(mChatList.get(mChatList.size() - 1).getTime_stamp());
                 java.sql.Date date2 = new java.sql.Date((Long) map.get("time_stamp"));
@@ -377,7 +400,9 @@ public class ChatActivity extends AppCompatActivity {
                 map.put("isFirstMessageOfTheDay", true);
             }
             mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
-            reference.child("Chats").push().setValue(map);
+//            reference.child("Chats").push().setValue(map);
+
+            mStore.collection("Chats").document().set(map);
         }
     }
 
@@ -405,6 +430,6 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        reference.removeEventListener(seenListener);
+//        reference.removeEventListener(seenListener);
     }
 }

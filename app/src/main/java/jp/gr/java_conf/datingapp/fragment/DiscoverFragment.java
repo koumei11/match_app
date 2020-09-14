@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.fragments;
+package jp.gr.java_conf.datingapp.fragment;
 
 import android.content.Context;
 import android.graphics.Point;
@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.Map;
 
 import jp.gr.java_conf.datingapp.R;
-import jp.gr.java_conf.datingapp.models.Profile;
-import jp.gr.java_conf.datingapp.models.SwipeCard;
+import jp.gr.java_conf.datingapp.model.Profile;
+import jp.gr.java_conf.datingapp.model.SwipeCard;
 import jp.gr.java_conf.datingapp.utility.MatchHandler;
-import jp.gr.java_conf.datingapp.interfaces.SelectedListener;
+import jp.gr.java_conf.datingapp.listener.SelectedListener;
 import jp.gr.java_conf.datingapp.utility.WindowSizeGetter;
 
 /**

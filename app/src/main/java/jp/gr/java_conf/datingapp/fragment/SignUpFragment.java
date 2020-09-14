@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.fragments;
+package jp.gr.java_conf.datingapp.fragment;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -20,17 +20,23 @@ import androidx.fragment.app.Fragment;
 import com.facebook.CallbackManager;
 import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import jp.gr.java_conf.datingapp.ProfileSettingsActivity;
 import jp.gr.java_conf.datingapp.R;
-import jp.gr.java_conf.datingapp.dialogs.DialogManager;
+import jp.gr.java_conf.datingapp.dialog.DialogManager;
 import jp.gr.java_conf.datingapp.progressbar.SignUpProgressButton;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
@@ -57,6 +63,7 @@ public class SignUpFragment extends Fragment {
     private ConstraintLayout mLayout;
     private FirebaseFirestore mStore;
     private CallbackManager mCallbackManager;
+    private DatabaseReference userRef;
     private TextWatcher mTextWatcher = new TextWatcher() {
         @Override
         public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -123,6 +130,7 @@ public class SignUpFragment extends Fragment {
         mSignUpBtn = view.findViewById(R.id.signup_card_view);
         mLayout = view.findViewById(R.id.signup_constraint_layout);
         mStore = FirebaseFirestore.getInstance();
+        userRef = FirebaseDatabase.getInstance().getReference().child("Users");
 
         mEmail.addTextChangedListener(mTextWatcher);
         mPassword.addTextChangedListener(mTextWatcher);
@@ -147,6 +155,17 @@ public class SignUpFragment extends Fragment {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if(task.isSuccessful()) {
+                                String uid = mAuth.getCurrentUser().getUid();
+                                FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
+                                    @Override
+                                    public void onSuccess(InstanceIdResult instanceIdResult) {
+                                        String deviceToken = instanceIdResult.getToken();
+                                        System.out.println("トークン");
+                                        System.out.println(deviceToken);
+                                        userRef.child(uid).child("device_token")
+                                                .setValue(deviceToken);
+                                    }
+                                });
                                 Map<String, Object> map = new HashMap<>();
                                 map.put("email", mEmail.getText().toString());
                                 mStore.collection("Users").document(mAuth.getCurrentUser().getUid())

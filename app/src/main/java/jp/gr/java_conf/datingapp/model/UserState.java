@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.models;
+package jp.gr.java_conf.datingapp.model;
 
 public class UserState {
     private String state;

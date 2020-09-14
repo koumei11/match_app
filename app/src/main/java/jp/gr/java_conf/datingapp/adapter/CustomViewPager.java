@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.adapters;
+package jp.gr.java_conf.datingapp.adapter;
 
 import android.content.Context;
 import android.util.AttributeSet;

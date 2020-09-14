@@ -1,10 +1,11 @@
-package jp.gr.java_conf.datingapp.models;
+package jp.gr.java_conf.datingapp.model;
 
 public class Match {
 
     private String name;
     private String user_id;
     private long time_stamp;
+    private boolean isBlock;
 
     public Match(){}
 
@@ -32,6 +33,13 @@ public class Match {
         this.time_stamp = time_stamp;
     }
 
+    public boolean isBlock() {
+        return isBlock;
+    }
+
+    public void setBlock(boolean block) {
+        isBlock = block;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -47,6 +55,7 @@ public class Match {
                 "name='" + name + '\'' +
                 ", user_id='" + user_id + '\'' +
                 ", time_stamp=" + time_stamp +
+                ", isBlock=" + isBlock +
                 '}';
     }
 }

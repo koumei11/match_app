@@ -3,12 +3,10 @@ package jp.gr.java_conf.datingapp.utility;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -16,7 +14,7 @@ import androidx.core.app.ActivityCompat;
 
 import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.enums.ImageEnum;
-import jp.gr.java_conf.datingapp.interfaces.IImagePickerLister;
+import jp.gr.java_conf.datingapp.listener.IImagePickerLister;
 
 import static jp.gr.java_conf.datingapp.ImageActivity.CAMERA_STORAGE_REQUEST_CODE;
 import static jp.gr.java_conf.datingapp.ImageActivity.ONLY_CAMERA_REQUEST_CODE;

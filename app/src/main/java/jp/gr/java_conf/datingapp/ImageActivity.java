@@ -3,7 +3,6 @@ package jp.gr.java_conf.datingapp;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import android.app.Activity;
@@ -22,7 +21,7 @@ import java.io.File;
 import java.io.IOException;
 
 import jp.gr.java_conf.datingapp.enums.ImageEnum;
-import jp.gr.java_conf.datingapp.interfaces.IImagePickerLister;
+import jp.gr.java_conf.datingapp.listener.IImagePickerLister;
 import jp.gr.java_conf.datingapp.utility.UiHelper;
 
 public class ImageActivity extends AppCompatActivity implements IImagePickerLister {

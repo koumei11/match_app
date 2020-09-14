@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.fragments;
+package jp.gr.java_conf.datingapp.fragment;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -28,12 +28,9 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
@@ -53,8 +50,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.ImageActivity;
 import jp.gr.java_conf.datingapp.MainActivity;
 import jp.gr.java_conf.datingapp.R;
-import jp.gr.java_conf.datingapp.dialogs.DialogManager;
-import jp.gr.java_conf.datingapp.models.Chat;
+import jp.gr.java_conf.datingapp.dialog.DialogManager;
 import jp.gr.java_conf.datingapp.progressbar.SaveProgressButton;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
@@ -566,7 +562,7 @@ public class ProfileFragment extends Fragment {
         DatabaseReference profileRef = FirebaseDatabase.getInstance().getReference("/ProfileImage/" + uid);
         Map<String, Object> map = new HashMap<>();
         map.put("img_url", stringUri);
-        map.put("change_time", System.currentTimeMillis());
+        map.put("time_stamp", System.currentTimeMillis());
         profileRef.setValue(map);
     }
 

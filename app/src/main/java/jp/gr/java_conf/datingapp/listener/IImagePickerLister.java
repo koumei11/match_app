@@ -1,4 +1,4 @@
-package jp.gr.java_conf.datingapp.interfaces;
+package jp.gr.java_conf.datingapp.listener;
 
 import jp.gr.java_conf.datingapp.enums.ImageEnum;
 
