@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ON時 -->
+    <item android:state_checked="true">
+        <layer-list>
+            <item android:bottom="3dp" android:top="3dp">
+                <!--形のタイプ-->
+                <shape android:shape="rectangle">
+                    <!--角丸の半径-->
+                    <corners android:radius="32dp" />
+                    <!--背景色-->
+                    <solid android:color="@color/colorRed" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- OFF時 -->
+    <item>
+        <layer-list>
+            <item android:bottom="3dp" android:top="3dp">
+                <!--形のタイプ-->
+                <shape android:shape="rectangle">
+                    <!--角丸の半径-->
+                    <corners android:radius="32dp" />
+                    <!--背景色-->
+                    <solid android:color="#dcdcdc"/>
+                    <!--周りの色-->
+                    <stroke android:width="1dp" android:color="#d3d3d3"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

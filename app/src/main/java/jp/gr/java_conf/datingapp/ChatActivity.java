@@ -2,6 +2,7 @@ package jp.gr.java_conf.datingapp;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.net.Uri;
 import android.os.Build;
@@ -17,6 +18,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -35,12 +37,15 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.auth.User;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -50,9 +55,20 @@ import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.adapter.ChatRecyclerAdapter;
+import jp.gr.java_conf.datingapp.fragment.ChatFragment;
 import jp.gr.java_conf.datingapp.model.Chat;
 import jp.gr.java_conf.datingapp.model.Profile;
+import jp.gr.java_conf.datingapp.model.SwitchButton;
+import jp.gr.java_conf.datingapp.notification.APIService;
+import jp.gr.java_conf.datingapp.notification.Client;
+import jp.gr.java_conf.datingapp.notification.Data;
+import jp.gr.java_conf.datingapp.notification.MyResponse;
+import jp.gr.java_conf.datingapp.notification.Sender;
+import jp.gr.java_conf.datingapp.notification.Token;
 import jp.gr.java_conf.datingapp.utility.WindowSizeGetter;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ChatActivity extends AppCompatActivity {
     private static final int REQUEST_CODE = 100;
@@ -70,22 +86,29 @@ public class ChatActivity extends AppCompatActivity {
     private ImageView mSend;
     private DatabaseReference reference;
     private StorageReference mStorage;
-    String toId = "";
-    String imgUrl = "";
-    String userName = "";
-    String myImg = "";
+    private String toId = "";
+    private String imgUrl = "";
+    private String userName = "";
+    private String myImg = "";
     private ChatRecyclerAdapter mChatRecyclerAdapter;
     private ValueEventListener seenListener;
-    List<Chat> mChatList;
-    View view;
-    Profile userProfile, myProfile;
+    private boolean isFirst = true;
+    private List<Chat> mChatList;
+    private View view;
+    private Profile userProfile, myProfile;
+    private ChatFragment chatFragment;
+    private HomeActivity homeActivity;
+    private ValueEventListener messageReadListener;
+    private SharedPreferences preferences;
+    private SharedPreferences.Editor editor;
+    private APIService apiService;
+    private boolean isNotify = true;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
-
         getWindow().setStatusBarColor(getResources().getColor(R.color.colorGrey));
 
         mToolbar = findViewById(R.id.tool_bar);
@@ -111,12 +134,17 @@ public class ChatActivity extends AppCompatActivity {
         mStore = FirebaseFirestore.getInstance();
         mStorage = FirebaseStorage.getInstance().getReference();
         reference = FirebaseDatabase.getInstance().getReference();
+        preferences  = getSharedPreferences("DATA", Context.MODE_PRIVATE);
+        editor = preferences.edit();
         toId = getIntent().getStringExtra("doc_id");
         imgUrl = getIntent().getStringExtra("user_img");
         userName = getIntent().getStringExtra("user_name");
         userProfile = (Profile) getIntent().getSerializableExtra("profile");
         mChatList = new ArrayList<>();
         mChatRecyclerAdapter = new ChatRecyclerAdapter(ChatActivity.this, mChatList);
+
+        chatFragment = new ChatFragment();
+        homeActivity = new HomeActivity();
 
         mCamera.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -132,9 +160,13 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
+        apiService = Client.getClient("https://fcm.googleapis.com/").create(APIService.class);
+
         final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setStackFromEnd(true);
         mChatRecyclerView.setLayoutManager(linearLayoutManager);
+
+        readMessage(toId, userProfile);
 
         mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
@@ -159,20 +191,12 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 view.setEnabled(false);
-                mStore.collection("Users").document(toId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful() && task.getResult() != null) {
-                            Profile profile = task.getResult().toObject(Profile.class);
-                            Intent intent = new Intent(ChatActivity.this, UserDetailActivity.class);
-                            intent.putExtra("profile", profile);
-                            intent.putExtra("user_id", profile.getUser_id());
-                            intent.putExtra("match_flg", true);
-                            startActivity(intent);
-                        }
-                        view.setEnabled(true);
-                    }
-                });
+                Intent intent = new Intent(ChatActivity.this, UserDetailActivity.class);
+                intent.putExtra("profile", userProfile);
+                intent.putExtra("user_id", userProfile.getUser_id());
+                intent.putExtra("match_flg", true);
+                startActivity(intent);
+                view.setEnabled(true);
             }
         });
 
@@ -219,15 +243,6 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                seenMessage(toId);
-                readMessage(toId, userProfile);
-            }
-        }).start();
-
-
         mSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -268,50 +283,49 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    private void seenMessage(final String userId) {
-        reference = FirebaseDatabase.getInstance().getReference("Chats");
-        seenListener = reference.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    Chat chat = snapshot.getValue(Chat.class);
-                    if (chat.getTo().equals(mAuth.getCurrentUser().getUid()) && chat.getFrom().equals(userId)) {
-                        HashMap<String, Object> hashMap = new HashMap<>();
-                        hashMap.put("isSeen", true);
-                        snapshot.getRef().updateChildren(hashMap);
-                    }
-                }
-
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
-    }
-
     private void readMessage(String toId, Profile profile) {
-
-        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Chats");
-
-        reference.addValueEventListener(new ValueEventListener() {
+        messageReadListener = reference.child("Chats").addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+            public void onDataChange(@NonNull DataSnapshot snapshots) {
                 mChatList.clear();
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                editor.putInt("totalUnreadMessages", 0).apply();
+                int totalUnreadMessages = 0;
+                for (DataSnapshot snapshot : snapshots.getChildren()) {
                     Chat chat = snapshot.getValue(Chat.class);
                     if (chat != null) {
                         if ((chat.getFrom().equals(mAuth.getCurrentUser().getUid()) || chat.getFrom().equals(toId)) &&
                                 (chat.getTo().equals(mAuth.getCurrentUser().getUid()) || chat.getTo().equals(toId))) {
-                            // isFirstMessageOfTheDayとisSeenが上手くマッピングできないためここで直接代入
                             chat.setFirstMessageOfTheDay((boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
-                            chat.setSeen((boolean) snapshot.child("isSeen").getValue());
                             chat.setProfile(profile);
+                            if (chat.getTo().equals(mAuth.getCurrentUser().getUid()) && !(boolean) snapshot.child("isSeen").getValue()) {
+                                Map<String, Object> map = Chat.toMap(chat);
+                                Map<String, Object> chatUpdates = new HashMap<>();
+                                map.put("isSeen", true);
+                                chatUpdates.put(snapshot.getKey(), map);
+                                reference.child("Chats").updateChildren(chatUpdates);
+                                chat.setSeen(true);
+                            } else {
+                                chat.setSeen((boolean) snapshot.child("isSeen").getValue());
+                            }
                             mChatList.add(chat);
                         }
+                        Gson gson = new Gson();
+                        String json = preferences.getString(chat.getTo(), null);
+                        if (json != null) {
+                            System.out.println("json内");
+                            System.out.println(chat.getTo());
+                            Map map = gson.fromJson(json, Map.class);
+                            int messages = (int) (double)map.get("message_stock");
+                            System.out.println(messages);
+                            totalUnreadMessages += messages;
+                            System.out.println(totalUnreadMessages);
+                        }
+                    } else {
+                        System.out.println("chatはnullです");
                     }
                 }
+                editor.putInt("totalUnreadMessages", totalUnreadMessages);
+                editor.apply();
                 mChatRecyclerView.setAdapter(mChatRecyclerAdapter);
                 mChatRecyclerAdapter.notifyDataSetChanged();
             }
@@ -326,17 +340,6 @@ public class ChatActivity extends AppCompatActivity {
     private void sendMessage(String message, String image, String myId, String toId, Uri imageUri) {
         mChatText.setText("");
         Map<String, Object> map = new HashMap<>();
-        Map<String, Object> notificationMap = new HashMap<>();
-        notificationMap.put("from", myId);
-        notificationMap.put("name", myProfile.getName());
-        if (message != null) {
-            notificationMap.put("message", message);
-        } else if (imageUri != null) {
-            notificationMap.put("url", imageUri);
-        }
-
-        DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
-        reference.child("Notification").child(toId).push().setValue(notificationMap);
 
         if (imageUri != null) {
             Long tsLong = System.currentTimeMillis()/1000;
@@ -368,14 +371,7 @@ public class ChatActivity extends AppCompatActivity {
                                 map.put("isFirstMessageOfTheDay", true);
                             }
                             mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
-//                            reference.child("Chats").push().setValue(map);
-
-                            mStore.collection("Chats").document().set(map).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void aVoid) {
-                                    System.out.println("Added to Firestore");
-                                }
-                            });
+                            reference.child("Chats").push().setValue(map);
                         }
                     });
                 }
@@ -390,7 +386,7 @@ public class ChatActivity extends AppCompatActivity {
             map.put("isSeen", false);
             if (mChatList.size() > 0) {
                 java.sql.Date date1 = new java.sql.Date(mChatList.get(mChatList.size() - 1).getTime_stamp());
-                java.sql.Date date2 = new java.sql.Date((Long) map.get("time_stamp"));
+                java.sql.Date date2 = new java.sql.Date((long) map.get("time_stamp"));
                 if (date2.toString().equals(date1.toString())) {
                     map.put("isFirstMessageOfTheDay", false);
                 } else {
@@ -400,10 +396,63 @@ public class ChatActivity extends AppCompatActivity {
                 map.put("isFirstMessageOfTheDay", true);
             }
             mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
-//            reference.child("Chats").push().setValue(map);
-
-            mStore.collection("Chats").document().set(map);
+            reference.child("Chats").push().setValue(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+                @Override
+                public void onSuccess(Void aVoid) {
+                    System.out.println("データベース書き込み完了");
+                }
+            });
         }
+        reference.child("Switch").child(toId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.child("on").getValue() != null && (boolean)snapshot.child("on").getValue()) {
+                    sendNotification(toId, myProfile.getName(), message);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+    }
+
+    private void sendNotification(String receiver, String userName, String message) {
+        DatabaseReference tokens = FirebaseDatabase.getInstance().getReference("Token");
+        Query query = tokens.orderByKey().equalTo(receiver);
+        query.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshots) {
+                for (DataSnapshot snapshot : snapshots.getChildren()) {
+                    Token token = snapshot.getValue(Token.class);
+                    Data data = new Data(mAuth.getCurrentUser().getUid(), R.drawable.heart1, userName + ": " + message, getString(R.string.new_message), receiver);
+                    Sender sender = new Sender(data, token.getToken());
+                    apiService.sendNotification(sender)
+                            .enqueue(new Callback<MyResponse>() {
+                                @Override
+                                public void onResponse(Call<MyResponse> call, Response<MyResponse> response) {
+                                    if (response.code() == 200) {
+                                        if (response.body().success != 1) {
+                                            Toast.makeText(ChatActivity.this, "Failed!", Toast.LENGTH_SHORT).show();
+                                        }
+                                    }
+                                }
+
+                                @Override
+                                public void onFailure(Call<MyResponse> call, Throwable t) {
+
+                                }
+                            });
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 
     @Override
@@ -428,8 +477,19 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (!isFirst) {
+            readMessage(toId, userProfile);
+        } else {
+            isFirst = false;
+        }
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
-//        reference.removeEventListener(seenListener);
+        System.out.println("onPause");
+        reference.child("Chats").removeEventListener(messageReadListener);
     }
 }

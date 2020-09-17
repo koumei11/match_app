@@ -57,6 +57,7 @@ public class MatchHandler {
                                                                         public void onComplete(@NonNull Task<Void> task) {
                                                                             if (task.isSuccessful()) {
                                                                                 System.out.println("マッチ");
+
                                                                             } else {
                                                                                 System.out.println("マッチできませんでした。");
                                                                             }

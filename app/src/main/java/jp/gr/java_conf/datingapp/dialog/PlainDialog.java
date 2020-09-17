@@ -9,10 +9,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
-public class DialogManager extends DialogFragment {
+public class PlainDialog extends DialogFragment {
     private String mMessage;
 
-    public DialogManager(String message) {
+    public PlainDialog(String message) {
         mMessage = message;
     }
 

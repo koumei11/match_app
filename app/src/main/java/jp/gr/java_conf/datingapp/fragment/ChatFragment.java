@@ -1,14 +1,16 @@
 
 package jp.gr.java_conf.datingapp.fragment;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -27,48 +29,75 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
+import com.google.gson.Gson;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 
-import jp.gr.java_conf.datingapp.HomeActivity;
 import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.adapter.MatchRecyclerAdapter;
 import jp.gr.java_conf.datingapp.model.Chat;
 import jp.gr.java_conf.datingapp.model.Match;
-import jp.gr.java_conf.datingapp.model.Profile;
-import jp.gr.java_conf.datingapp.notification.MessageNotification;
+import jp.gr.java_conf.datingapp.notification.Token;
+import jp.gr.java_conf.datingapp.utility.DateTimeConverter;
 
 /**
  * A simple {@link Fragment} subclass.
  */
 public class ChatFragment extends Fragment {
 
-    private RecyclerView mChatRecyclerView;
+    private RecyclerView mMatchRecyclerView;
     private List<Match> mChatList;
     private List<Match> mMatchList;
-    private MatchRecyclerAdapter mChatRecyclerAdapter;
+    private MatchRecyclerAdapter mMatchRecyclerAdapter;
     private List<String> mUsers;
     private List<String> mMatchUsers;
     private List<String> mInvalidUsers;
-    private QuerySnapshot snapshots;
+    private QuerySnapshot snapshotsData;
     private FirebaseAuth mAuth;
     private String uid;
     private FirebaseFirestore mStore;
+    private View view;
+    private ChildEventListener chatListener;
+    private SharedPreferences preferences;
+    private SharedPreferences.Editor editor;
+    private DatabaseReference chatsRef;
+    private ProgressBar progressBar;
 
     public ChatFragment() {
         // Required empty public constructor
     }
 
+    public interface MessageListener {
+        void onMessageReceived();
+        void onAllMessageSeen();
+    }
+
+    private MessageListener mListener;
+
+    @Override
+    public void onAttach(@NotNull Context context) {
+        super.onAttach(context);
+
+        if (!(context instanceof MessageListener)) {
+            throw new ClassCastException("activity が MessageListener を実装していません.");
+        }
+
+        mListener = ((MessageListener) context);
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_chat, container, false);
-
-        System.out.println("onCreateView in ChatFragment.");
-        mChatRecyclerView = view.findViewById(R.id.chat_recycler);
+        view = inflater.inflate(R.layout.fragment_chat, container, false);
+        mMatchRecyclerView = view.findViewById(R.id.chat_recycler);
         mChatList = new ArrayList<>();
         mMatchList = new ArrayList<>();
         mUsers = new ArrayList<>();
@@ -77,32 +106,19 @@ public class ChatFragment extends Fragment {
         mAuth = FirebaseAuth.getInstance();
         uid = mAuth.getCurrentUser().getUid();
         mStore = FirebaseFirestore.getInstance();
-        mChatRecyclerView.setHasFixedSize(true);
-        mChatRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        mMatchRecyclerView.setHasFixedSize(true);
+        progressBar = view.findViewById(R.id.progress_bar_chat);
+        preferences  = getContext().getSharedPreferences("DATA", Context.MODE_PRIVATE);
+        editor = preferences.edit();
+        mMatchRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
+        mMatchRecyclerView.setVisibility(View.GONE);
 
-        mChatRecyclerAdapter = new MatchRecyclerAdapter(getContext(), mChatList, mMatchList);
+        mMatchRecyclerAdapter = new MatchRecyclerAdapter(getContext(), mChatList, mMatchList);
 
-        mChatRecyclerView.setAdapter(mChatRecyclerAdapter);
+        mMatchRecyclerView.setAdapter(mMatchRecyclerAdapter);
 
-        MessageNotification.createNotificationChannel(getContext());
-
-        attachChatListener(view);
-        attachBlockListener(view);
-
-        mStore.collection("Users").document(uid)
-                .collection("Match").orderBy("time_stamp", Query.Direction.DESCENDING).whereEqualTo("isBlock", false).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    if (task.getResult() != null) {
-                        snapshots = task.getResult();
-                        createMatchUsers(snapshots);
-                    }
-                } else {
-                    System.out.println(task.getResult());
-                }
-            }
-        });
+        retrieveMatchUserData();
 
         DatabaseReference profileRef = FirebaseDatabase.getInstance().getReference("ProfileImage");
         profileRef.addChildEventListener(new ChildEventListener() {
@@ -139,26 +155,70 @@ public class ChatFragment extends Fragment {
 
             }
         });
+
+        FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
+            @Override
+            public void onSuccess(InstanceIdResult instanceIdResult) {
+                System.out.println("トークンが変わりました");
+                System.out.println(instanceIdResult.getToken());
+                updateToken(instanceIdResult.getToken());
+            }
+        });
+
         return view;
+    }
+
+    private void retrieveMatchUserData() {
+        mStore.collection("Users").document(uid)
+                .collection("Match").orderBy("time_stamp", Query.Direction.DESCENDING).whereEqualTo("isBlock", false).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                if (task.isSuccessful()) {
+                    if (task.getResult() != null) {
+                        snapshotsData = task.getResult();
+                        createMatchUsers(snapshotsData);
+                        attachChatListener(view);
+                        attachBlockListener(view);
+                        mMatchRecyclerView.setVisibility(View.VISIBLE);
+                        progressBar.setVisibility(View.GONE);
+                    }
+                } else {
+                    System.out.println(task.getResult());
+                }
+            }
+        });
     }
 
     private void createMatchUsers(QuerySnapshot snapshotsData) {
         for (DocumentSnapshot documentSnapshot : snapshotsData) {
-        Match match = documentSnapshot.toObject(Match.class);
-        if (match != null) {
-            mMatchUsers.add(match.getUser_id());
+            Match match = documentSnapshot.toObject(Match.class);
+            if (match != null) {
+                mMatchUsers.add(match.getUser_id());
+            }
         }
     }
+
+    private void updateToken(String token) {
+        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Token");
+        Token tokenInstance = new Token(token);
+        reference.child(uid).setValue(tokenInstance);
     }
 
     private void attachChatListener(View view) {
-        DatabaseReference chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
         // 最初の一回のみ
         chatsRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                int totalUnreadMessages = 0;
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     addChatUsers(snapshot, view);
+                    if (snapshot.child("to").getValue().equals(uid)
+                            && !(boolean)snapshot.child("isSeen").getValue()) {
+                        totalUnreadMessages += 1;
+                    }
+                }
+                if (totalUnreadMessages != 0) {
+                    mListener.onMessageReceived();
                 }
                 attachAccountListener(view);
             }
@@ -168,37 +228,58 @@ public class ChatFragment extends Fragment {
 
             }
         });
+
         // リスナーアタッチ
-        chatsRef.orderByChild("time_stamp").addChildEventListener(new ChildEventListener() {
-
+        chatListener = chatsRef.orderByChild("time_stamp").addChildEventListener(new ChildEventListener() {
             private long attachTime = System.currentTimeMillis();
-
             @Override
             public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                setChatMetaData(snapshot);
                 long receivedTime = (long) snapshot.child("time_stamp").getValue();
                 if (receivedTime > attachTime) {
-                    addChatUsers(snapshot, view);
-                    if (snapshot.child("to").getValue().equals(uid)) {
-                        mStore.collection("Users").document((String) snapshot.child("from").getValue())
-                                .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                            @Override
-                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                Profile profile = documentSnapshot.toObject(Profile.class);
-                                if (profile != null) {
-                                    MessageNotification.sendNotification(profile.getName(), (String) snapshot.child("message").getValue(), getContext());
-                                }
-                            }
-                        });
+                    if (snapshot.child("to").getValue().equals(uid)
+                            || snapshot.child("from").getValue().equals(uid)) {
+                        mListener.onMessageReceived();
+                        addChatUsers(snapshot, view);
+                        updateMatchingUsers(view);
                     }
                 }
             }
 
             @Override
             public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                if (snapshot.child("to").getValue().equals(uid)
+                        || snapshot.child("from").getValue().equals(uid)) {
+                    setChatMetaData(snapshot);
+                    updateMatchingUsers(view);
+                }
             }
 
             @Override
             public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+                System.out.println("Chat Removed!!");
+                System.out.println(preferences.getInt("totalUnreadMessages", -1));
+                if (!(boolean)snapshot.child("isSeen").getValue()) {
+                    chatsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshots) {
+                            int totalUnreadMessages = 0;
+                            for (DataSnapshot snapshot : snapshots.getChildren()) {
+                                if (snapshot.child("to").getValue().equals(uid) && !(boolean) snapshot.child("isSeen").getValue()) {
+                                    totalUnreadMessages += 1;
+                                }
+                            }
+                            if (totalUnreadMessages == 0) {
+                                mListener.onAllMessageSeen();
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+
+                        }
+                    });
+                }
             }
 
             @Override
@@ -279,9 +360,9 @@ public class ChatFragment extends Fragment {
             public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
                 if ((long) snapshot.child("time_stamp").getValue() > attachTime) {
                     if (snapshot.child("block_user_id").getValue().equals(uid)) {
-                        updateMatchingUsers(view);
+                        retrieveMatchUserData();
                     } else if (snapshot.child("blocked_user_id").getValue().equals(uid)) {
-                        updateMatchingUsers(view);
+                        retrieveMatchUserData();
                     }
                 }
             }
@@ -309,14 +390,8 @@ public class ChatFragment extends Fragment {
     }
 
     private void addChatUsers(DataSnapshot snapshot, View view) {
-        boolean isLatest = false;
         if (snapshot.child("from").getValue() != null && snapshot.child("to").getValue() != null) {
             if (snapshot.child("from").getValue().equals(uid)) {
-                if (mUsers.size() > 1) {
-                    if (!mUsers.get(mUsers.size() - 1).equals(snapshot.child("to").getValue())) {
-                        isLatest = true;
-                    }
-                }
                 if (mUsers.contains((String)snapshot.child("to").getValue())) {
                     mUsers.remove((String)snapshot.child("to").getValue());
                     mUsers.add((String)snapshot.child("to").getValue());
@@ -325,11 +400,6 @@ public class ChatFragment extends Fragment {
                 }
             }
             if (snapshot.child("to").getValue().equals(uid)) {
-                if (mUsers.size() > 1) {
-                    if (!mUsers.get(mUsers.size() - 1).equals(snapshot.child("from").getValue())) {
-                        isLatest = true;
-                    }
-                }
                 if (mUsers.contains((String)snapshot.child("from").getValue())) {
                     mUsers.remove((String)snapshot.child("from").getValue());
                     mUsers.add((String)snapshot.child("from").getValue());
@@ -337,17 +407,15 @@ public class ChatFragment extends Fragment {
                     mUsers.add((String)snapshot.child("from").getValue());
                 }
             }
-            if (isLatest) {
-                System.out.println("Latest");
-                updateMatchingUsers(view);
-            }
+
         }
     }
 
     private void updateMatchingUsers(View view) {
+        System.out.println("updateMatchingUsers");
         mChatList.clear();
         mMatchList.clear();
-        validateUsers(snapshots, view);
+        validateUsers(snapshotsData, view);
     }
 
     private void validateUsers(QuerySnapshot snapshots, View view) {
@@ -363,7 +431,6 @@ public class ChatFragment extends Fragment {
                         } else if (!mUsers.contains(match.getUser_id()) && !mMatchList.contains(match)) {
                             mMatchList.add(match);
                         }
-                        mChatRecyclerAdapter.notifyDataSetChanged();
                     }
                 }
             }
@@ -374,10 +441,10 @@ public class ChatFragment extends Fragment {
                 assert match != null;
                 if (!mInvalidUsers.contains(match.getUser_id())) {
                     mMatchList.add(match);
-                    mChatRecyclerAdapter.notifyDataSetChanged();
                 }
             }
         }
+        mMatchRecyclerAdapter.notifyDataSetChanged();
 
         Collections.reverse(mChatList);
 
@@ -390,7 +457,66 @@ public class ChatFragment extends Fragment {
         }
     }
 
+    private void setChatMetaData(DataSnapshot snapshot) {
+        Chat chat = snapshot.getValue(Chat.class);
+        editor.putInt("totalUnreadMessages", 0).apply();
+        int totalUnreadMessages = 0;
+        assert chat != null;
+        chat.setFirstMessageOfTheDay((boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
+        chat.setSeen((boolean) snapshot.child("isSeen").getValue());
+        Map<String, Object> map = new HashMap<>();
+        map.put("message_stock", 0);
+        Gson gson = new Gson();
+        if (chat.getTo().equals(uid) && !chat.isSeen()) {
+            totalUnreadMessages += 1;
+            if (preferences.getString(chat.getFrom(), null) != null) {
+                System.out.println("あり");
+                String previousJson = preferences.getString(chat.getFrom(), "");
+                Map previousMap = gson.fromJson(previousJson, Map.class);
+                int stock = (int) (double)previousMap.get("message_stock") + 1;
+                map.put("message_stock", stock);
+            } else {
+                System.out.println("なし");
+                map.put("message_stock", 1);
+            }
+        }
+        if (chat.getTo().equals(uid)) {
+            if (chat.getMessage() != null) {
+                map.put("last_message", chat.getMessage());
+            } else {
+                map.put("last_message", getString(R.string.send_image));
+            }
+            map.put("time_stamp", DateTimeConverter.getSentTime(chat.getTime_stamp()));
+            String json = gson.toJson(map);
+            editor.putString(chat.getFrom(), json);
+        }
+
+        if (chat.getFrom().equals(uid)) {
+            if (chat.getMessage() != null) {
+                map.put("last_message", chat.getMessage());
+            } else {
+                map.put("last_message", getString(R.string.send_image));
+            }
+            map.put("time_stamp", DateTimeConverter.getSentTime(chat.getTime_stamp()));
+            String json = gson.toJson(map);
+            editor.putString(chat.getTo(), json);
+        }
+
+        editor.apply();
+    }
+
+
     private boolean hasTalkUsers(List<String> mUsers) {
         return mUsers.size() != 0;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (preferences.getInt("totalUnreadMessages", -1) == 0) {
+            mListener.onAllMessageSeen();
+        }
+        System.out.println("onResume");
+        System.out.println(preferences.getInt("totalUnreadMessages", 0));
     }
 }

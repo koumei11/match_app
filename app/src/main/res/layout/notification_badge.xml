@@ -12,8 +12,8 @@
 
     <TextView
         android:id="@+id/notification_text"
-        android:layout_width="15dp"
-        android:layout_height="15dp"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
         android:layout_marginStart="18dp"
         android:background="@drawable/round_shape"
         android:gravity="center"

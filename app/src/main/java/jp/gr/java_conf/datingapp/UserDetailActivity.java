@@ -1,7 +1,9 @@
 package jp.gr.java_conf.datingapp;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.net.Uri;
@@ -23,6 +25,7 @@ import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -40,7 +43,7 @@ import java.util.Set;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import de.hdodenhof.circleimageview.CircleImageView;
-import jp.gr.java_conf.datingapp.dialog.DialogManager;
+import jp.gr.java_conf.datingapp.dialog.PlainDialog;
 import jp.gr.java_conf.datingapp.model.Profile;
 import jp.gr.java_conf.datingapp.model.UserState;
 import jp.gr.java_conf.datingapp.utility.AgeCalculation;
@@ -72,6 +75,10 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
     private FirebaseAuth mAuth;
     private DatabaseReference ref;
     private FirebaseDatabase database;
+    private DatabaseReference chatsRef;
+    private ChildEventListener notificationListener;
+    private Context context;
+    private SharedPreferences preferences;
 
     @BindView(R.id.app_bar_layout)
     AppBarLayout appBarLayout;
@@ -94,7 +101,7 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_detail);
-
+        context = this;
         mImageView = findViewById(R.id.detail_image);
         mCircleImageView = findViewById(R.id.circle_image);
         mToolbarName = findViewById(R.id.toolbar_name);
@@ -111,6 +118,9 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
         mNolang = findViewById(R.id.no_lang);
         online = findViewById(R.id.online_detail);
         mLastSeen = findViewById(R.id.last_seen);
+        chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
+        mAuth = FirebaseAuth.getInstance();
+        mStore = FirebaseFirestore.getInstance();
 
         ButterKnife.bind(this);
 
@@ -208,7 +218,7 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
                 try {
                     age = AgeCalculation.calculate(birthDayString);
                 } catch (ParseException e) {
-                    DialogManager dialog = new DialogManager(getString(R.string.no_user));
+                    PlainDialog dialog = new PlainDialog(getString(R.string.no_user));
                     assert getFragmentManager() != null;
                     dialog.show(getSupportFragmentManager(),"Error occurred.");
                 }
@@ -242,13 +252,50 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
                 mNolang.setText(getString(R.string.no_lang));
             }
         }
-    }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    @Override
-    protected void onResume() {
-        super.onResume();
-        mImageView.setTransitionName("");
+//        notificationListener = chatsRef.addChildEventListener(new ChildEventListener() {
+//            private long attachTime = System.currentTimeMillis();
+//            @Override
+//            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+//                long receivedTime = (long) snapshot.child("time_stamp").getValue();
+//                if (preferences.getBoolean("switch", true)) {
+//                    if (receivedTime > attachTime) {
+//                        if (snapshot.child("to").getValue().equals(mAuth.getCurrentUser().getUid()) && !(boolean) snapshot.child("isSeen").getValue()) {
+//                            mStore.collection("Users").document((String) snapshot.child("from").getValue())
+//                                    .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+//                                @Override
+//                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+//                                    Profile profile = documentSnapshot.toObject(Profile.class);
+//                                    if (profile != null) {
+//                                        MessageNotification.sendNotification(profile.getName(), (String) snapshot.child("message").getValue(), context);
+//                                    }
+//                                }
+//                            });
+//                        }
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+//
+//            }
+//
+//            @Override
+//            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+//
+//            }
+//
+//            @Override
+//            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+//
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//
+//            }
+//        });
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -296,5 +343,20 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
             chip.setText(s);
             chipGroup.addView(chip);
         }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mImageView.setTransitionName("");
+        System.out.println("onResume in ChatFragment");
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        System.out.println("onPause in ChatFragment");
+//        chatsRef.removeEventListener(notificationListener);
     }
 }

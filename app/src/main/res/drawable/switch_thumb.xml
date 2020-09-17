@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- ON時 -->
+    <item>
+        <layer-list>
+            <item android:bottom="4dp"
+                android:left="2dp"
+                android:right="2dp"
+                android:top="4dp">
+                <shape android:shape="oval" >
+                    <size android:height="20dp" android:width="20dp" />
+                    <solid android:color="#fefefe" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- OFF字 -->
+    <item>
+        <layer-list>
+            <item android:bottom="4dp"
+                android:left="2dp"
+                android:right="2dp"
+                android:top="4dp">
+                <shape android:shape="oval" >
+                    <size android:height="20dp" android:width="20dp" />
+                    <solid android:color="#fefefe" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+</selector>

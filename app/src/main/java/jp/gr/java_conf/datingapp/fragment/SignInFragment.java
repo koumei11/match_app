@@ -17,7 +17,6 @@ import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 
-import com.facebook.CallbackManager;
 import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -35,11 +34,10 @@ import com.google.firebase.iid.InstanceIdResult;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import jp.gr.java_conf.datingapp.HomeActivity;
 import jp.gr.java_conf.datingapp.R;
-import jp.gr.java_conf.datingapp.dialog.DialogManager;
+import jp.gr.java_conf.datingapp.dialog.PlainDialog;
 import jp.gr.java_conf.datingapp.progressbar.SignInProgressButton;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
@@ -151,21 +149,10 @@ public class SignInFragment extends Fragment {
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if (task.isSuccessful()) {
                                 System.out.println("成功");
-                                String uid = mAuth.getCurrentUser().getUid();
-                                FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
-                                    @Override
-                                    public void onSuccess(InstanceIdResult instanceIdResult) {
-                                        String deviceToken = instanceIdResult.getToken();
-                                        System.out.println("トークン");
-                                        System.out.println(deviceToken);
-                                        userRef.child(uid).child("device_token")
-                                                .setValue(deviceToken);
-                                    }
-                                });
                                 changeActivity();
                             } else {
                                 System.out.println("失敗");
-                                DialogManager dialog = new DialogManager(getString(R.string.no_user));
+                                PlainDialog dialog = new PlainDialog(getString(R.string.no_user));
                                 assert getFragmentManager() != null;
                                 dialog.show(getFragmentManager(), "SignIn Failed.");
                                 button.buttonFinished();

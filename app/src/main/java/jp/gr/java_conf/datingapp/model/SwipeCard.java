@@ -24,9 +24,12 @@ import com.mindorks.placeholderview.annotations.swipe.SwipeInState;
 import com.mindorks.placeholderview.annotations.swipe.SwipeOut;
 import com.mindorks.placeholderview.annotations.swipe.SwipeOutState;
 
+import java.text.ParseException;
+
 import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.UserDetailActivity;
 import jp.gr.java_conf.datingapp.listener.SelectedListener;
+import jp.gr.java_conf.datingapp.utility.AgeCalculation;
 
 @Layout(R.layout.swipe_card_view)
 public class SwipeCard {
@@ -41,6 +44,9 @@ public class SwipeCard {
 
     @View(R.id.locationNameTxt)
     private TextView locationNameTxt;
+
+    @View(R.id.ageTxt)
+    private TextView ageTxt;
 
     @View(R.id.constraint_prof)
     private ConstraintLayout constraintLayout;
@@ -72,7 +78,7 @@ public class SwipeCard {
     }
 
     @Resolve
-    private void onResolved(){
+    private void onResolved() throws ParseException {
         if (mProfile.getImg_url() == null || mProfile.getImg_url().equals("")) {
             profileImageView.setImageResource(R.drawable.avatornew);
         } else {
@@ -81,6 +87,9 @@ public class SwipeCard {
 
         nameAgeTxt.setText(mProfile.getName());
         locationNameTxt.setText(mProfile.getAddress());
+        int age = AgeCalculation.calculate(mProfile.getDate());
+        String ageStr = age + "歳";
+        ageTxt.setText(ageStr);
     }
 
     @SwipeOut

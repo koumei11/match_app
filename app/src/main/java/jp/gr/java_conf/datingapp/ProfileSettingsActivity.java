@@ -36,8 +36,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import jp.gr.java_conf.datingapp.dialog.AddressDialog;
-import jp.gr.java_conf.datingapp.dialog.DialogManager;
+import jp.gr.java_conf.datingapp.dialog.SelectionDialog;
+import jp.gr.java_conf.datingapp.dialog.PlainDialog;
 import jp.gr.java_conf.datingapp.fragment.DatePickFragment;
 import jp.gr.java_conf.datingapp.progressbar.SaveProgressButton;
 import jp.gr.java_conf.datingapp.utility.AgeCalculation;
@@ -50,7 +50,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
     private EditText mName;
     private TextView mDate;
     private TextView mAddress;
-    private EditText mJob;
+    private TextView mJob;
     private String mSex;
     private Uri url = null;
     private CardView mStartBtn;
@@ -137,12 +137,37 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         mAddress.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                AddressDialog addressDialog = new AddressDialog(getResources().getStringArray(R.array.address_list), mAddress);
-                addressDialog.show(getSupportFragmentManager(), "Choose an address.");
+                SelectionDialog selectionDialog = new SelectionDialog(getResources().getStringArray(R.array.address_list), getString(R.string.enter_address), mAddress);
+                selectionDialog.show(getSupportFragmentManager(), "Choose an address.");
             }
         });
 
         mAddress.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                checkFieldsForEmptyValues();
+            }
+        });
+
+        mJob.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                SelectionDialog selectionDialog = new SelectionDialog(getResources().getStringArray(R.array.job_list), getString(R.string.enter_job), mJob);
+                selectionDialog.show(getSupportFragmentManager(), "Choose an job.");
+            }
+        });
+
+        mJob.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 
@@ -189,7 +214,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                                         map.put("account_flg", true);
                                         saveUserData(map, save);
                                     } else {
-                                        DialogManager dialog = new DialogManager(getString(R.string.not_allowed));
+                                        PlainDialog dialog = new PlainDialog(getString(R.string.not_allowed));
                                         assert getFragmentManager() != null;
                                         dialog.show(getSupportFragmentManager(),"Not Allowed.");
                                         save.buttonFinished();
@@ -210,7 +235,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                         map.put("account_flg", true);
                         saveUserData(map, save);
                     } else {
-                        DialogManager dialog = new DialogManager(getString(R.string.not_allowed));
+                        PlainDialog dialog = new PlainDialog(getString(R.string.not_allowed));
                         assert getFragmentManager() != null;
                         dialog.show(getSupportFragmentManager(),"Not Allowed.");
                         save.buttonFinished();
@@ -224,7 +249,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         try {
             return AgeCalculation.calculate(mDate.getText().toString()) >= 18;
         } catch (ParseException e) {
-            DialogManager dialog = new DialogManager(getString(R.string.no_user));
+            PlainDialog dialog = new PlainDialog(getString(R.string.no_user));
             assert getFragmentManager() != null;
             dialog.show(getSupportFragmentManager(),"Error occurred.");
         }
@@ -256,7 +281,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         String address = mAddress.getText().toString();
         String job = mJob.getText().toString();
 
-        if (name.equals("") || job.equals("") || !isDateSet || address.equals("居住地を入力してください")) {
+        if (name.equals("") || job.equals("") || !isDateSet || address.equals(getString(R.string.enter_address)) || job.equals(getString(R.string.enter_job))) {
             mStartBtn.setEnabled(false);
             mLayout.setBackgroundColor(mStartBtn.getResources().getColor(R.color.colorLightRed));
         } else {

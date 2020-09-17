@@ -30,36 +30,6 @@ public class ViewBehavior extends CoordinatorLayout.Behavior<HeaderView> {
 
     @Override
     public boolean onDependentViewChanged(CoordinatorLayout parent, HeaderView child, View dependency) {
-
-//        int maxScroll = ((AppBarLayout) dependency).getTotalScrollRange();
-//        float percentage = Math.abs(dependency.getY()) / (float) maxScroll;
-//
-//        float childPosition = dependency.getHeight()
-//                + dependency.getY()
-//                - child.getHeight()
-//                - (getToolbarHeight() - child.getHeight()) * percentage / 2;
-//
-//
-//        childPosition = childPosition - mStartMarginBottom * (1f - percentage);
-//
-//        CoordinatorLayout.LayoutParams lp = (CoordinatorLayout.LayoutParams) child.getLayoutParams();
-//        lp.leftMargin = (int) (percentage * mEndMargintLeft) + mStartMarginLeft;
-//        lp.rightMargin = mMarginRight;
-//        child.setLayoutParams(lp);
-//
-//        child.setY(childPosition);
-//
-//
-//
-//        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-//            if (isHide && percentage < 1) {
-//                child.setVisibility(View.VISIBLE);
-//                isHide = false;
-//            } else if (!isHide && percentage == 1) {
-//                child.setVisibility(View.GONE);
-//                isHide = true;
-//            }
-//        }
         return true;
     }
 

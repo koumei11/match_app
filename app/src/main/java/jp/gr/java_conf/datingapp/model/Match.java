@@ -7,6 +7,10 @@ public class Match {
     private long time_stamp;
     private boolean isBlock;
 
+    public Match(String user_id) {
+        this.user_id = user_id;
+    }
+
     public Match(){}
 
     public String getName() {

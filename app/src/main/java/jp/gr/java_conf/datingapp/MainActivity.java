@@ -46,7 +46,7 @@ import org.json.JSONException;
 import java.util.Objects;
 
 import jp.gr.java_conf.datingapp.adapter.ViewPagerAdapter;
-import jp.gr.java_conf.datingapp.dialog.DialogManager;
+import jp.gr.java_conf.datingapp.dialog.PlainDialog;
 import jp.gr.java_conf.datingapp.fragment.SignInFragment;
 import jp.gr.java_conf.datingapp.fragment.SignUpFragment;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
@@ -113,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onError(FacebookException error) {
-                DialogManager dialog = new DialogManager(getString(R.string.error));
+                PlainDialog dialog = new PlainDialog(getString(R.string.error));
                 dialog.show(getSupportFragmentManager(), "Error occurred.");
             }
         });
@@ -168,17 +168,6 @@ public class MainActivity extends AppCompatActivity {
                                                                 @Override
                                                                 public void onComplete(@NonNull Task<AuthResult> task) {
                                                                     if (task.isSuccessful()) {
-                                                                        String uid = mAuth.getCurrentUser().getUid();
-                                                                        FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
-                                                                            @Override
-                                                                            public void onSuccess(InstanceIdResult instanceIdResult) {
-                                                                                String deviceToken = instanceIdResult.getToken();
-                                                                                System.out.println("トークン");
-                                                                                System.out.println(deviceToken);
-                                                                                userRef.child(uid).child("device_token")
-                                                                                        .setValue(deviceToken);
-                                                                            }
-                                                                        });
                                                                         AdditionalUserInfo info = Objects.requireNonNull(task.getResult()).getAdditionalUserInfo();
                                                                         if (info != null) {
                                                                             if (info.isNewUser()) {
@@ -195,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
                                                                 }
                                                             });
                                                 } else {
-                                                    DialogManager dialog = new DialogManager(getString(R.string.fb_fail));
+                                                    PlainDialog dialog = new PlainDialog(getString(R.string.fb_fail));
                                                     dialog.show(getSupportFragmentManager(), "Failed.");
                                                     LoginManager.getInstance().logOut();
                                                 }
@@ -236,7 +225,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         if (mAuth.getCurrentUser() != null) {
-            System.out.println(mAuth.getCurrentUser().getUid());
             progressBar.setVisibility(ProgressBar.VISIBLE);
             mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
                     .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {

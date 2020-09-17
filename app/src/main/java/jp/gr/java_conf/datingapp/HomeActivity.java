@@ -1,10 +1,11 @@
 package jp.gr.java_conf.datingapp;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,12 +19,14 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,33 +35,35 @@ import jp.gr.java_conf.datingapp.adapter.HomeViewPagerAdapter;
 import jp.gr.java_conf.datingapp.fragment.ChatFragment;
 import jp.gr.java_conf.datingapp.fragment.DiscoverFragment;
 import jp.gr.java_conf.datingapp.fragment.ProfileFragment;
-import jp.gr.java_conf.datingapp.model.Chat;
+import jp.gr.java_conf.datingapp.notification.APIService;
+import jp.gr.java_conf.datingapp.notification.Client;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
-public class HomeActivity extends AppCompatActivity {
+public class HomeActivity extends AppCompatActivity implements ChatFragment.MessageListener {
 
     private ViewPager mViewPager;
     private TabLayout mHomeTabs;
     private HomeViewPagerAdapter adapter;
-    private ImageButton mAcceptButton;
-    private ImageButton mRejectButton;
-    private DiscoverFragment fragment;
-    private boolean isOnline = true;
-    private boolean isFirstLoading = true;
     private FirebaseAuth mAuth;
     private String uid;
-    private String senderName;
-    private String receivedMessage;
-    private String receivedTime;
-    private String tempKey = "";
-    private String key = "";
     private FirebaseDatabase database;
     private TextView badge;
+    private FirebaseFirestore mStore;
+    private DatabaseReference reference;
+    private ValueEventListener badgeListener;
+    private SharedPreferences preferences;
+    private SharedPreferences.Editor editor;
+    private DatabaseReference chatsRef;
+    private ChildEventListener notificationListener;
+    private Context context;
+    private APIService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        context = this;
 
         mViewPager = findViewById(R.id.home_view_pager);
         mHomeTabs = findViewById(R.id.home_tab);
@@ -74,7 +79,12 @@ public class HomeActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         uid = mAuth.getCurrentUser().getUid();
+        mStore = FirebaseFirestore.getInstance();
         database = FirebaseDatabase.getInstance();
+        reference = database.getReference("Chats");
+        preferences  = getSharedPreferences("DATA", Context.MODE_PRIVATE);
+        editor = preferences.edit();
+        editor.clear().apply();
         adapter = new HomeViewPagerAdapter(getSupportFragmentManager());
         adapter.addFragment(new ProfileFragment(), "マイプロフィール");
         adapter.addFragment(new DiscoverFragment(), "さがす");
@@ -86,9 +96,11 @@ public class HomeActivity extends AppCompatActivity {
         mHomeTabs.getTabAt(1).setIcon(R.drawable.discover);
         mHomeTabs.getTabAt(2).setCustomView(R.layout.notification_badge);
         badge = mHomeTabs.getTabAt(2).getCustomView().findViewById(R.id.notification_text);
-        setBadge();
         mHomeTabs.selectTab(mHomeTabs.getTabAt(1));
+        chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
         DatabaseReference myRef = database.getReference("/status/" + uid);
+
+        apiService = Client.getClient("https://fcm.googleapis.com/").create(APIService.class);
 
         Map<String, Object> isOfflineForDatabase = new HashMap<>();
         isOfflineForDatabase.put("state", "offline");
@@ -117,98 +129,26 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
 
-        mHomeTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+        database.getReference("Switch").child(uid).child("on").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.getValue() != null) {
+                    editor.putBoolean("switchOn", (boolean) snapshot.getValue());
+                    editor.apply();
+                }
             }
 
             @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-
-            }
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {
+            public void onCancelled(@NonNull DatabaseError error) {
 
             }
         });
 
-//        DatabaseReference chatsRef = FirebaseDatabase.getInstance().getReference();
-//        chatsRef.child("Chats").addListenerForSingleValueEvent(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-//                System.out.println("Single");
-//                List<String> chatList = new ArrayList<>();
-//                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-//                   chatList.add(snapshot.getKey());
-//                }
-//                chatsRef.child("Chats").addChildEventListener(new ChildEventListener() {
-//                    @Override
-//                    public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-//                        System.out.println(snapshot.child("message").getValue());
-//                        if (!chatList.contains(snapshot.getKey())) {
-//                            System.out.println("含まれていません");
-//                        }
-//                    }
-//
-//                    @Override
-//                    public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-//                        System.out.println("データが変わりました");
-//                    }
-//
-//                    @Override
-//                    public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-//
-//                    }
-//
-//                    @Override
-//                    public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-//
-//                    }
-//
-//                    @Override
-//                    public void onCancelled(@NonNull DatabaseError error) {
-//
-//                    }
-//                });
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
-//                addValueEventListener(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-//                if (!isFirstLoading) {
-//
-//                        System.out.println("naka");
-//                        if (snapshot.child("to").getValue().equals(uid)) {
-//                            tempKey = snapshot.getKey();
-//                            senderName = (String) snapshot.child("from").getValue();
-//                            receivedMessage = (String) snapshot.child("message").getValue();
-//                            receivedTime = DateTimeConverter.getSentTime((Long) snapshot.child("time_stamp").getValue());
-//                        }
-
-//                    if (!tempKey.equals(key)) {
-//                        key = tempKey;
-//                        System.out.println(key);
-//                        System.out.println(senderName);
-//                        System.out.println(receivedMessage);
-//                        System.out.println(receivedTime);
-//                        sendNotification(senderName, receivedMessage, receivedTime);
-//                    }
-//                }
-//                isFirstLoading = false;
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
+        if (getIntent() != null) {
+            if (getIntent().getIntExtra("tabPos", -1) >= 0) {
+                mViewPager.setCurrentItem(getIntent().getIntExtra("tabPos", -1));
+            }
+        }
     }
 
     @Override
@@ -231,32 +171,69 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    private void setBadge() {
-        DatabaseReference ref = database.getReference("Chats");
-        ref.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                int unread = 0;
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    Chat chat = snapshot.getValue(Chat.class);
-                    chat.setSeen((boolean)snapshot.child("isSeen").getValue());
-                    if (chat.getTo().equals(uid) && !chat.isSeen()) {
-                        unread++;
-                    }
-                }
+    @Override
+    public void onMessageReceived() {
+        badge.setVisibility(View.VISIBLE);
+    }
 
-                if (unread > 0) {
-                    badge.setVisibility(View.VISIBLE);
-                    badge.setText(String.valueOf(unread));
-                } else {
-                    badge.setVisibility(View.GONE);
-                }
-            }
+    @Override
+    public void onAllMessageSeen() {
+        badge.setVisibility(View.GONE);
+    }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
+    @Override
+    public void onResume() {
+        super.onResume();
+//        System.out.println("onResume in ChatFragment");
+//        notificationListener = chatsRef.addChildEventListener(new ChildEventListener() {
+//            private long attachTime = System.currentTimeMillis();
+//            @Override
+//            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+//                long receivedTime = (long) snapshot.child("time_stamp").getValue();
+//                if (preferences.getBoolean("switch", true)) {
+//                    if (receivedTime > attachTime) {
+//                        if (snapshot.child("to").getValue().equals(uid) && !(boolean) snapshot.child("isSeen").getValue()) {
+//                            mStore.collection("Users").document((String) snapshot.child("from").getValue())
+//                                    .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+//                                @Override
+//                                public void onSuccess(DocumentSnapshot documentSnapshot) {
+//                                    Profile profile = documentSnapshot.toObject(Profile.class);
+//                                    if (profile != null) {
+//                                        MessageNotification.sendNotification(profile.getName(), (String) snapshot.child("message").getValue(), context);
+//                                    }
+//                                }
+//                            });
+//                        }
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+//
+//            }
+//
+//            @Override
+//            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+//
+//            }
+//
+//            @Override
+//            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+//
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//
+//            }
+//        });
+    }
 
-            }
-        });
+    @Override
+    public void onPause() {
+        super.onPause();
+//        System.out.println("onPause in ChatFragment");
+//        chatsRef.removeEventListener(notificationListener);
     }
 }

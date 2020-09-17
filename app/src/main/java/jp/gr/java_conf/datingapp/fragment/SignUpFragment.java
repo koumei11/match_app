@@ -32,11 +32,10 @@ import com.google.firebase.iid.InstanceIdResult;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import jp.gr.java_conf.datingapp.ProfileSettingsActivity;
 import jp.gr.java_conf.datingapp.R;
-import jp.gr.java_conf.datingapp.dialog.DialogManager;
+import jp.gr.java_conf.datingapp.dialog.PlainDialog;
 import jp.gr.java_conf.datingapp.progressbar.SignUpProgressButton;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
@@ -155,17 +154,6 @@ public class SignUpFragment extends Fragment {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if(task.isSuccessful()) {
-                                String uid = mAuth.getCurrentUser().getUid();
-                                FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
-                                    @Override
-                                    public void onSuccess(InstanceIdResult instanceIdResult) {
-                                        String deviceToken = instanceIdResult.getToken();
-                                        System.out.println("トークン");
-                                        System.out.println(deviceToken);
-                                        userRef.child(uid).child("device_token")
-                                                .setValue(deviceToken);
-                                    }
-                                });
                                 Map<String, Object> map = new HashMap<>();
                                 map.put("email", mEmail.getText().toString());
                                 mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
@@ -180,7 +168,7 @@ public class SignUpFragment extends Fragment {
                                     }
                                 });
                             }else {
-                                DialogManager dialog = new DialogManager(getString(R.string.already_exists));
+                                PlainDialog dialog = new PlainDialog(getString(R.string.already_exists));
                                 assert getFragmentManager() != null;
                                 dialog.show(getFragmentManager(), "SignUp Failed.");
                                 button.buttonFinished();

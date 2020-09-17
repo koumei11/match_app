@@ -4,9 +4,12 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -25,8 +28,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.database.annotations.NotNull;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestore;;
 import com.google.firebase.firestore.SetOptions;
+import com.google.gson.Gson;
 
 import java.text.ParseException;
 import java.util.Date;
@@ -37,14 +41,15 @@ import java.util.Map;
 import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.ChatActivity;
 import jp.gr.java_conf.datingapp.R;
+import jp.gr.java_conf.datingapp.listener.MessageSentListener;
 import jp.gr.java_conf.datingapp.model.Chat;
 import jp.gr.java_conf.datingapp.model.Match;
 import jp.gr.java_conf.datingapp.model.Profile;
+import jp.gr.java_conf.datingapp.model.SwitchButton;
 import jp.gr.java_conf.datingapp.model.UserState;
 import jp.gr.java_conf.datingapp.utility.AgeCalculation;
-import jp.gr.java_conf.datingapp.utility.DateTimeConverter;
 
-public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements MessageSentListener {
 
     private Context mContext;
     private List<Match> mChatList;
@@ -53,15 +58,19 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     private final FirebaseAuth mAuth = FirebaseAuth.getInstance();
     private final String myId = mAuth.getCurrentUser().getUid();
     private final FirebaseDatabase database = FirebaseDatabase.getInstance();
+
     private DatabaseReference ref;
-    private DatabaseReference blockRef = database.getReference();
     private String theLastMessage;
     private String theSentDate;
+    private SharedPreferences preferences;
+    private SharedPreferences.Editor editor;
 
     public MatchRecyclerAdapter(Context context, List<Match> chatList, List<Match> matchList) {
         mContext = context;
         mChatList = chatList;
         mMatchList = matchList;
+        preferences = context.getSharedPreferences("DATA", Context.MODE_PRIVATE);
+        editor = preferences.edit();
     }
 
     @NonNull
@@ -79,12 +88,14 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, final int position) {
         if (position != 0) {
             ChatViewHolder chatViewHolder = (ChatViewHolder) holder;
+            System.out.println(mChatList);
             ref = database.getReference("/status/" + mChatList.get(position - 1).getUser_id());
             ref.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                     UserState userState = snapshot.getValue(UserState.class);
-                    if (userState != null) {
+                    Match match = new Match(snapshot.getKey());
+                    if (userState != null && mChatList.contains(match)) {
                         Date now = new Date();
                         long timePassed = (now.getTime() - userState.getLast_changed()) / 1000 / 60 / 60;
                         if (userState.getState().equals("online")) {
@@ -191,42 +202,41 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                 matchViewHolder.mPlainText.setVisibility(View.VISIBLE);
             }
 
+            matchViewHolder.mSwitch.setChecked(preferences.getBoolean("switchOn", true));
+            matchViewHolder.mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                    SwitchButton isOn = new SwitchButton(compoundButton.isChecked());
+                    database.getReference("Switch").child(mAuth.getCurrentUser().getUid())
+                            .setValue(isOn);
+                    editor.putBoolean("switchOn", compoundButton.isChecked());
+                    editor.apply();
+                }
+            });
+
             if (mChatList.size() == 0) {
                 matchViewHolder.mChatText.setText("");
             } else {
                 matchViewHolder.mChatText.setText(mContext.getString(R.string.during_chat));
             }
-
         }
     }
 
     private void showNumberOfUnreadMessage(String uid, TextView notificationText) {
-        DatabaseReference ref = database.getReference("Chats");
-        ref.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                int unread = 0;
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    Chat chat = snapshot.getValue(Chat.class);
-                    chat.setSeen((boolean)snapshot.child("isSeen").getValue());
-                    if (chat.getTo().equals(myId) && !chat.isSeen() && chat.getFrom().equals(uid)) {
-                        unread++;
-                    }
-                }
-
-                if (unread > 0) {
-                    notificationText.setVisibility(View.VISIBLE);
-                    notificationText.setText(String.valueOf(unread));
-                } else {
-                    notificationText.setVisibility(View.GONE);
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
+        int unread = 0;
+        Gson gson = new Gson();
+        String json = preferences.getString(uid, null);
+        if (json != null) {
+            Map map = gson.fromJson(json, Map.class);
+            int stock = (int) (double)map.get("message_stock");
+            unread = stock;
+        }
+        if (unread > 0) {
+            notificationText.setVisibility(View.VISIBLE);
+            notificationText.setText(String.valueOf(unread));
+        } else {
+            notificationText.setVisibility(View.GONE);
+        }
     }
 
     private void blockUser(String uid, Map<String, Object> block) {
@@ -244,7 +254,25 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                                         map.put("blocked_user_id", uid);
                                         map.put("block_user_id", myId);
                                         map.put("isBlock", true);
-                                        blockRef.child("Block").push().setValue(map);
+                                        map.put("time_stamp", System.currentTimeMillis());
+                                        database.getReference("Block").push().setValue(map);
+                                        database.getReference("Chats").addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(@NonNull DataSnapshot snapshots) {
+                                                for (DataSnapshot snapshot : snapshots.getChildren())  {
+                                                    Chat chat = snapshot.getValue(Chat.class);
+                                                    if ((chat.getFrom().equals(myId) || chat.getFrom().equals(uid)) &&
+                                                            (chat.getTo().equals(myId) || chat.getTo().equals(uid))) {
+                                                        snapshot.getRef().removeValue();
+                                                    }
+                                                }
+                                            }
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError error) {
+
+                                            }
+                                        });
                                     }
                                 });
                     }
@@ -254,44 +282,32 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     private void showMessage(String uid, TextView mSentDate, TextView mNewestMessage) {
         theLastMessage = "default";
         theSentDate = "";
-        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Chats");
-        reference.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    Chat chat = snapshot.getValue(Chat.class);
-                    if ((chat.getFrom().equals(myId) || chat.getFrom().equals(uid)) &&
-                            (chat.getTo().equals(myId) || chat.getTo().equals(uid))) {
-                        if (chat.getMessage() == null && chat.getImg_uri() != null) {
-                            theLastMessage = mContext.getString(R.string.send_image);
-                        } else {
-                            theLastMessage = chat.getMessage();
-                        }
+        Gson gson = new Gson();
+        String json = preferences.getString(uid, null);
+        if (json != null) {
+            Map map = gson.fromJson(json, Map.class);
+            theLastMessage = (String) map.get("last_message");
+            theSentDate = (String) map.get("time_stamp");
+        } else {
+            System.out.println("null");
+        }
 
-                        theSentDate = DateTimeConverter.getSentTime(chat.getTime_stamp());
-                    }
-                }
+        switch (theLastMessage) {
+            case "default":
+                mSentDate.setText("");
+                mNewestMessage.setText(mContext.getString(R.string.no_message));
+                break;
+            default:
+                mSentDate.setText(theSentDate);
+                mNewestMessage.setText(theLastMessage);
+                break;
+        }
 
-                switch (theLastMessage) {
-                    case "default":
-                        mSentDate.setText("");
-                        mNewestMessage.setText(mContext.getString(R.string.no_message));
-                        break;
-                    default:
-                        mSentDate.setText(theSentDate);
-                        mNewestMessage.setText(theLastMessage);
-                        break;
-                }
+        System.out.println("メッセ");
+        System.out.println(theLastMessage);
 
-                theLastMessage = "default";
-                theSentDate = "";
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
+        theLastMessage = "default";
+        theSentDate = "";
     }
 
     @Override
@@ -302,6 +318,11 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     @Override
     public int getItemViewType(int position) {
         return position;
+    }
+
+    @Override
+    public void onMessageSent(DataSnapshot snapshot) {
+
     }
 
     public class TextViewHolder extends RecyclerView.ViewHolder {
@@ -318,6 +339,7 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
         RecyclerView mMatchRecyclerView;
         MatchOnlyRecyclerAdapter mMatchRecyclerAdapter;
         TextView mPlainText;
+        Switch mSwitch;
         View view;
         public MatchViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -327,6 +349,7 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             mMatchRecyclerView = view.findViewById(R.id.match_recycler);
             mMatchRecyclerAdapter = new MatchOnlyRecyclerAdapter(mContext, mMatchList);
             mPlainText = view.findViewById(R.id.plain_text);
+            mSwitch = view.findViewById(R.id.switch_notify);
         }
     }
 

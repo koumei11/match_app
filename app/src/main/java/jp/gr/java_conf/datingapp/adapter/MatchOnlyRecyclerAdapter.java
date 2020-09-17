@@ -55,12 +55,6 @@ public class MatchOnlyRecyclerAdapter extends RecyclerView.Adapter<MatchOnlyRecy
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        System.out.println("サイズ");
-        System.out.println(mMatchList.size());
-        System.out.println(mMatchList);
-        if (mMatchList.size() != 0) {
-            System.out.println("サイズは0ではないです。");
-        }
         mStore.collection("Users").document(mMatchList.get(position).getUser_id())
                 .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override

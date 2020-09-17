@@ -50,7 +50,8 @@ import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.ImageActivity;
 import jp.gr.java_conf.datingapp.MainActivity;
 import jp.gr.java_conf.datingapp.R;
-import jp.gr.java_conf.datingapp.dialog.DialogManager;
+import jp.gr.java_conf.datingapp.dialog.PlainDialog;
+import jp.gr.java_conf.datingapp.dialog.SelectionDialog;
 import jp.gr.java_conf.datingapp.progressbar.SaveProgressButton;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
@@ -68,7 +69,8 @@ public class ProfileFragment extends Fragment {
     private CircleImageView mImg2;
     private CircleImageView mImg3;
     private EditText mName;
-    private EditText mJob;
+    private TextView mAddress;
+    private TextView mJob;
     private EditText mHobby;
     private EditText mLang;
     private EditText mDesc;
@@ -98,6 +100,7 @@ public class ProfileFragment extends Fragment {
         mImg2 = view.findViewById(R.id.pro_image2);
         mImg3 = view.findViewById(R.id.pro_image3);
         mName = view.findViewById(R.id.pro_name);
+        mAddress = view.findViewById(R.id.pro_address);
         mJob = view.findViewById(R.id.pro_job);
         mLang = view.findViewById(R.id.pro_lang);
         mHobby = view.findViewById(R.id.pro_hobby);
@@ -116,6 +119,22 @@ public class ProfileFragment extends Fragment {
         mLangList = new HashSet<>();
 
         getProfileData();
+
+        mAddress.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                SelectionDialog selectionDialog = new SelectionDialog(getResources().getStringArray(R.array.address_list), getString(R.string.enter_address), mAddress);
+                selectionDialog.show(getFragmentManager(), "Choose an address.");
+            }
+        });
+
+        mJob.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                SelectionDialog selectionDialog = new SelectionDialog(getResources().getStringArray(R.array.job_list), getString(R.string.enter_job), mJob);
+                selectionDialog.show(getFragmentManager(), "Choose an job.");
+            }
+        });
 
         mQuit.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -395,6 +414,7 @@ public class ProfileFragment extends Fragment {
                 save.buttonActivated();
                 Map<String, Object> map = new HashMap<>();
                 map.put("name", mName.getText().toString());
+                map.put("address", mAddress.getText().toString());
                 map.put("job", mJob.getText().toString());
                 map.put("hobby", joinString(mHobbyList));
                 map.put("lang", joinString(mLangList));
@@ -412,6 +432,7 @@ public class ProfileFragment extends Fragment {
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 if (task.isSuccessful()) {
                     String name = task.getResult().getString("name");
+                    String address = task.getResult().getString("address");
                     String job = task.getResult().getString("job");
                     String desc = task.getResult().getString("desc");
                     String hobby = task.getResult().getString("hobby");
@@ -420,6 +441,7 @@ public class ProfileFragment extends Fragment {
                     String img_url3 = task.getResult().getString("img_url3");
                     String lang = task.getResult().getString("lang");
                     mName.setText(name);
+                    mAddress.setText(address);
                     mJob.setText(job);
                     mDesc.setText(desc);
                     mHobbyList = hobby == null ? mHobbyList : new HashSet<>(Arrays.asList(hobby.split("\\s*,\\s*")));
@@ -536,29 +558,6 @@ public class ProfileFragment extends Fragment {
     }
 
     private void replaceImageForChat(String uid, String stringUri) {
-//        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Chats");
-//        reference.addListenerForSingleValueEvent(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-//                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-//                    if (snapshot.child("from").getValue().equals(uid)) {
-//                        String key = snapshot.getKey();
-//                        Chat chat = snapshot.getValue(Chat.class);
-//                        chat.setSeen((Boolean) snapshot.child("isSeen").getValue());
-//                        chat.setFirstMessageOfTheDay((Boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
-//                        chat.setMy_img(stringUri);
-//                        Map<String, Object> chatMap = Chat.toMap(chat);
-//                        Map<String, Object> chatUpdates = new HashMap<>();
-//                        chatUpdates.put(key, chatMap);
-//                        reference.updateChildren(chatUpdates);
-//                    }
-//                }
-//            }
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
         DatabaseReference profileRef = FirebaseDatabase.getInstance().getReference("/ProfileImage/" + uid);
         Map<String, Object> map = new HashMap<>();
         map.put("img_url", stringUri);
@@ -619,7 +618,7 @@ public class ProfileFragment extends Fragment {
                                                 replaceImageForChat(uid, downloadUrl);
                                             }
                                         } else {
-                                            DialogManager dialog = new DialogManager(getString(R.string.not_save_image));
+                                            PlainDialog dialog = new PlainDialog(getString(R.string.not_save_image));
                                             assert getFragmentManager() != null;
                                             dialog.show(getFragmentManager(),"Image not saved.");
                                         }

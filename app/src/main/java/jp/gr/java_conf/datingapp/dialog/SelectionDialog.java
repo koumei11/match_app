@@ -12,13 +12,15 @@ import androidx.fragment.app.DialogFragment;
 
 import jp.gr.java_conf.datingapp.R;
 
-public class AddressDialog extends DialogFragment {
+public class SelectionDialog extends DialogFragment {
 
     private String [] mStrings;
+    private String mPlaceholder;
     private TextView mTextView;
 
-    public AddressDialog (String[] strings, TextView textView) {
+    public SelectionDialog(String[] strings, String placeholder, TextView textView) {
         mStrings = strings;
+        mPlaceholder = placeholder;
         mTextView = textView;
     }
 
@@ -26,8 +28,8 @@ public class AddressDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle(getString(R.string.enter_address))
-                .setItems(getResources().getStringArray(R.array.address_list), new DialogInterface.OnClickListener() {
+        builder.setTitle(mPlaceholder)
+                .setItems(mStrings, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         mTextView.setText(mStrings[i]);

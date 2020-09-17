@@ -94,7 +94,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="40dp"
                 android:layout_marginLeft="40dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="5dp"
                 android:backgroundTint="@color/colorGrey"
                 android:ems="10"
                 android:hint="名前を入力してください"
@@ -107,6 +107,36 @@
                 app:layout_constraintTop_toBottomOf="@+id/name" />
 
             <TextView
+                android:id="@+id/address"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="40dp"
+                android:layout_marginLeft="40dp"
+                android:layout_marginTop="20dp"
+                android:text="居住地"
+                android:textColor="@color/colorWhite"
+                android:textSize="16sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/pro_name" />
+
+            <TextView
+                android:id="@+id/pro_address"
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="40dp"
+                android:layout_marginLeft="40dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_border_bottom_black"
+                android:ems="10"
+                android:paddingLeft="1dp"
+                android:paddingBottom="4dp"
+                android:text="居住地を入力してください"
+                android:textColor="@color/colorWhite"
+                android:textSize="16sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/address" />
+
+            <TextView
                 android:id="@+id/job"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -117,22 +147,21 @@
                 android:textColor="@color/colorWhite"
                 android:textSize="16sp"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/pro_name" />
+                app:layout_constraintTop_toBottomOf="@+id/pro_address" />
 
-            <EditText
+            <TextView
                 android:id="@+id/pro_job"
                 android:layout_width="250dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="40dp"
                 android:layout_marginLeft="40dp"
                 android:layout_marginTop="16dp"
-                android:backgroundTint="@color/colorGrey"
+                android:background="@drawable/bg_border_bottom_black"
                 android:ems="10"
-                android:hint="職業を入力してください"
-                android:imeOptions="actionGo"
-                android:inputType="textPersonName"
-                android:textColor="@android:color/white"
-                android:textColorHint="@android:color/darker_gray"
+                android:paddingLeft="1dp"
+                android:paddingBottom="4dp"
+                android:text="職業を入力してください"
+                android:textColor="@color/colorWhite"
                 android:textSize="16sp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/job" />
@@ -157,7 +186,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="40dp"
                 android:layout_marginLeft="40dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="5dp"
                 android:backgroundTint="@color/colorGrey"
                 android:ems="10"
                 android:hint="運動、読書"
@@ -207,7 +236,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="40dp"
                 android:layout_marginLeft="40dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="5dp"
                 android:backgroundTint="@color/colorGrey"
                 android:ems="10"
                 android:hint="日本語、英語"
@@ -257,7 +286,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="40dp"
                 android:layout_marginLeft="40dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="5dp"
                 android:backgroundTint="@color/colorGrey"
                 android:ems="10"
                 android:gravity="start|top"
