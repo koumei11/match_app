@@ -70,6 +70,7 @@ public class ChatFragment extends Fragment {
     private SharedPreferences.Editor editor;
     private DatabaseReference chatsRef;
     private ProgressBar progressBar;
+    private String tempVal;
 
     public ChatFragment() {
         // Required empty public constructor
@@ -156,6 +157,39 @@ public class ChatFragment extends Fragment {
             }
         });
 
+        FirebaseDatabase.getInstance().getReference("Match").addChildEventListener(new ChildEventListener() {
+
+            private long attachTime = System.currentTimeMillis();
+
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                long matchTime = (long) snapshot.child("time_stamp").getValue();
+                if (matchTime > attachTime) {
+                    retrieveMatchUserData();
+                }
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
         FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
             @Override
             public void onSuccess(InstanceIdResult instanceIdResult) {
@@ -211,6 +245,7 @@ public class ChatFragment extends Fragment {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 int totalUnreadMessages = 0;
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    setChatMetaData(snapshot);
                     addChatUsers(snapshot, view);
                     if (snapshot.child("to").getValue().equals(uid)
                             && !(boolean)snapshot.child("isSeen").getValue()) {
@@ -231,19 +266,25 @@ public class ChatFragment extends Fragment {
 
         // リスナーアタッチ
         chatListener = chatsRef.orderByChild("time_stamp").addChildEventListener(new ChildEventListener() {
+
             private long attachTime = System.currentTimeMillis();
+
             @Override
             public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-                setChatMetaData(snapshot);
                 long receivedTime = (long) snapshot.child("time_stamp").getValue();
-                if (receivedTime > attachTime) {
-                    if (snapshot.child("to").getValue().equals(uid)
-                            || snapshot.child("from").getValue().equals(uid)) {
-                        mListener.onMessageReceived();
-                        addChatUsers(snapshot, view);
-                        updateMatchingUsers(view);
+                if (!snapshot.getKey().equals(tempVal))
+                    setChatMetaData(snapshot);
+                    tempVal = snapshot.getKey();
+                    if (!snapshot.getKey().equals(previousChildName)) {
+                        if (receivedTime > attachTime) {
+                            if (snapshot.child("to").getValue().equals(uid)
+                                    || snapshot.child("from").getValue().equals(uid)) {
+                                mListener.onMessageReceived();
+                                addChatUsers(snapshot, view);
+                                updateMatchingUsers(view);
+                            }
+                        }
                     }
-                }
             }
 
             @Override
@@ -257,8 +298,6 @@ public class ChatFragment extends Fragment {
 
             @Override
             public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-                System.out.println("Chat Removed!!");
-                System.out.println(preferences.getInt("totalUnreadMessages", -1));
                 if (!(boolean)snapshot.child("isSeen").getValue()) {
                     chatsRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
@@ -412,7 +451,6 @@ public class ChatFragment extends Fragment {
     }
 
     private void updateMatchingUsers(View view) {
-        System.out.println("updateMatchingUsers");
         mChatList.clear();
         mMatchList.clear();
         validateUsers(snapshotsData, view);
@@ -455,6 +493,8 @@ public class ChatFragment extends Fragment {
             view.findViewById(R.id.no_match).setVisibility(View.GONE);
             view.findViewById(R.id.chat_recycler).setVisibility(View.VISIBLE);
         }
+
+        System.out.println("Finish updateui");
     }
 
     private void setChatMetaData(DataSnapshot snapshot) {
@@ -470,7 +510,6 @@ public class ChatFragment extends Fragment {
         if (chat.getTo().equals(uid) && !chat.isSeen()) {
             totalUnreadMessages += 1;
             if (preferences.getString(chat.getFrom(), null) != null) {
-                System.out.println("あり");
                 String previousJson = preferences.getString(chat.getFrom(), "");
                 Map previousMap = gson.fromJson(previousJson, Map.class);
                 int stock = (int) (double)previousMap.get("message_stock") + 1;
@@ -516,7 +555,5 @@ public class ChatFragment extends Fragment {
         if (preferences.getInt("totalUnreadMessages", -1) == 0) {
             mListener.onAllMessageSeen();
         }
-        System.out.println("onResume");
-        System.out.println(preferences.getInt("totalUnreadMessages", 0));
     }
 }

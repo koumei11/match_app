@@ -6,6 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+
     <FrameLayout
         android:id="@+id/card_frame"
         android:layout_width="match_parent"
@@ -31,6 +32,12 @@
                 android:transitionName="trans1"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent" />
+
+            <FrameLayout
+                android:id="@+id/image_indicator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="5dp" />
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/constraint_prof"

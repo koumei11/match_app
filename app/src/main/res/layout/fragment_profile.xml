@@ -24,56 +24,93 @@
             android:layout_height="match_parent"
             android:padding="5dp">
 
-            <TextView
-                android:id="@+id/textView4"
-                android:layout_width="43dp"
-                android:layout_height="28dp"
-                android:layout_marginStart="40dp"
-                android:layout_marginLeft="40dp"
-                android:layout_marginTop="32dp"
-                android:text="写真"
-                android:textColor="@color/colorWhite"
-                android:textSize="16sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <de.hdodenhof.circleimageview.CircleImageView
-                android:id="@+id/pro_image"
+            <FrameLayout
+                android:id="@+id/image1_frame"
                 android:layout_width="120dp"
                 android:layout_height="120dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginLeft="16dp"
-                android:layout_marginTop="20dp"
-                android:src="@drawable/avatornew"
+                android:layout_gravity="center_vertical"
+                android:layout_marginTop="70dp"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/textView4" />
+                app:layout_constraintTop_toTopOf="parent">
 
-            <de.hdodenhof.circleimageview.CircleImageView
-                android:id="@+id/pro_image3"
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/pro_image"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:src="@drawable/avatornew" />
+
+                <TextView
+                    android:id="@+id/placeholder"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:background="@drawable/circle_overlay"
+                    android:gravity="center"
+                    android:text="アップロード..."
+                    android:textColor="@color/colorWhite"
+                    android:textSize="10sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+
+            <FrameLayout
+                android:id="@+id/image2_frame"
                 android:layout_width="70dp"
                 android:layout_height="70dp"
-                android:layout_marginStart="10dp"
-                android:layout_marginLeft="10dp"
-                android:layout_marginTop="132dp"
-                android:layout_marginEnd="10dp"
-                android:layout_marginRight="10dp"
-                android:src="@drawable/avatornew"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.25"
-                app:layout_constraintStart_toEndOf="@+id/pro_image2"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <de.hdodenhof.circleimageview.CircleImageView
-                android:id="@+id/pro_image2"
-                android:layout_width="70dp"
-                android:layout_height="70dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginLeft="16dp"
-                android:src="@drawable/avatornew"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="30dp"
+                android:layout_marginLeft="20dp"
                 app:layout_constraintBottom_toTopOf="@+id/pro_name"
-                app:layout_constraintStart_toEndOf="@+id/pro_image"
+                app:layout_constraintStart_toEndOf="@+id/image1_frame"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.658" />
+                app:layout_constraintVertical_bias="0.658">
+
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/pro_image2"
+                    android:layout_width="70dp"
+                    android:layout_height="70dp"
+                    android:src="@drawable/avatornew" />
+
+                <TextView
+                    android:id="@+id/placeholder2"
+                    android:layout_width="70dp"
+                    android:layout_height="70dp"
+                    android:background="@drawable/circle_overlay"
+                    android:gravity="center"
+                    android:text="アップロード..."
+                    android:textColor="@color/colorWhite"
+                    android:textSize="8sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/image3_frame"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="30dp"
+                android:layout_marginLeft="20dp"
+                app:layout_constraintBottom_toTopOf="@+id/pro_name"
+                app:layout_constraintStart_toEndOf="@+id/image2_frame"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.658">
+
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/pro_image3"
+                    android:layout_width="70dp"
+                    android:layout_height="70dp"
+                    android:src="@drawable/avatornew" />
+
+                <TextView
+                    android:id="@+id/placeholder3"
+                    android:layout_width="70dp"
+                    android:layout_height="70dp"
+                    android:background="@drawable/circle_overlay"
+                    android:gravity="center"
+                    android:text="アップロード..."
+                    android:textColor="@color/colorWhite"
+                    android:textSize="8sp"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/name"
@@ -86,7 +123,7 @@
                 android:textColor="@color/colorWhite"
                 android:textSize="16sp"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/pro_image" />
+                app:layout_constraintTop_toBottomOf="@+id/image1_frame" />
 
             <EditText
                 android:id="@+id/pro_name"
@@ -378,6 +415,20 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/logout"
                 android:focusable="true" />
+
+            <TextView
+                android:id="@+id/empty_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="*入力必須です"
+                android:textColor="#FF0000"
+                android:textSize="12sp"
+                android:visibility="gone"
+                app:layout_constraintBottom_toTopOf="@+id/pro_name"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.04"
+                app:layout_constraintStart_toEndOf="@+id/name" />
 
 
         </androidx.constraintlayout.widget.ConstraintLayout>

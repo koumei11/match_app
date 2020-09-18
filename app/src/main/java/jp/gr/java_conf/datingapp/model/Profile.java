@@ -26,6 +26,8 @@ public class Profile extends ProfileId implements Serializable {
 
     private String user_id;
 
+    private int pos;
+
     public Profile() {
     }
 
@@ -115,5 +117,13 @@ public class Profile extends ProfileId implements Serializable {
 
     public void setImg_url3(String img_url3) {
         this.img_url3 = img_url3;
+    }
+
+    public int getPos() {
+        return pos;
+    }
+
+    public void setPos(int pos) {
+        this.pos = pos;
     }
 }

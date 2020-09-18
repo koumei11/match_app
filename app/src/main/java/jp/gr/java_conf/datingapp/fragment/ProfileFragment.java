@@ -1,11 +1,14 @@
 package jp.gr.java_conf.datingapp.fragment;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,7 +21,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 import com.bumptech.glide.Glide;
 import com.facebook.login.LoginManager;
@@ -80,11 +85,16 @@ public class ProfileFragment extends Fragment {
     private Set<String> mHobbyList;
     private Set<String> mLangList;
     private CardView mSaveProfile;
+    private TextView mEmpty;
+    private ConstraintLayout mConstraintLayout;
     private static final int RESULT_LOAD_IMG = 1212;
     private FirebaseAuth mAuth;
     private FirebaseFirestore mStore;
     private StorageReference mStorage;
     private String uid;
+    private Context mContext;
+    private FragmentManager mFragmentManager;
+    private View view;
 
     public ProfileFragment() {
     }
@@ -93,7 +103,7 @@ public class ProfileFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        View view = inflater.inflate(R.layout.fragment_profile, container, false);
+        view = inflater.inflate(R.layout.fragment_profile, container, false);
         CloseKeyboard.setupUI(view.findViewById(R.id.constraint_profile), getActivity());
 
         mImg = view.findViewById(R.id.pro_image);
@@ -108,12 +118,16 @@ public class ProfileFragment extends Fragment {
         mHobbyGroup = view.findViewById(R.id.chip_hobby);
         mLangGroup = view.findViewById(R.id.chip_lang);
         mSaveProfile = view.findViewById(R.id.save);
+        mConstraintLayout = view.findViewById(R.id.pro_save_layout);
+        mEmpty = view.findViewById(R.id.empty_name);
         mQuit = view.findViewById(R.id.quit);
 
         mAuth = FirebaseAuth.getInstance();
         mStore = FirebaseFirestore.getInstance();
         mStorage = FirebaseStorage.getInstance().getReference();
         uid = mAuth.getCurrentUser().getUid();
+        mContext = getContext();
+        mFragmentManager = getFragmentManager();
 
         mHobbyList = new HashSet<>();
         mLangList = new HashSet<>();
@@ -124,7 +138,7 @@ public class ProfileFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 SelectionDialog selectionDialog = new SelectionDialog(getResources().getStringArray(R.array.address_list), getString(R.string.enter_address), mAddress);
-                selectionDialog.show(getFragmentManager(), "Choose an address.");
+                selectionDialog.show(mFragmentManager, "Choose an address.");
             }
         });
 
@@ -132,14 +146,39 @@ public class ProfileFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 SelectionDialog selectionDialog = new SelectionDialog(getResources().getStringArray(R.array.job_list), getString(R.string.enter_job), mJob);
-                selectionDialog.show(getFragmentManager(), "Choose an job.");
+                selectionDialog.show(mFragmentManager, "Choose an job.");
+            }
+        });
+
+        mName.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                if (mName.getText() == null || mName.getText().toString().equals("")) {
+                    mSaveProfile.setEnabled(false);
+                    mConstraintLayout.setBackgroundColor(getResources().getColor(R.color.colorLightRed));
+                    mEmpty.setVisibility(View.VISIBLE);
+                } else {
+                    mSaveProfile.setEnabled(true);
+                    mConstraintLayout.setBackgroundColor(getResources().getColor(R.color.colorRed));
+                    mEmpty.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
             }
         });
 
         mQuit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
                 builder.setTitle(getString(R.string.quit))
                         .setMessage(getString(R.string.quit_sentence))
                         .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
@@ -166,11 +205,11 @@ public class ProfileFragment extends Fragment {
                                         FirebaseAuth.getInstance().signOut();
                                         LoginManager.getInstance().logOut();
 
-                                        Intent intent = new Intent(getContext(), MainActivity.class);
+                                        Intent intent = new Intent(mContext, MainActivity.class);
                                         startActivity(intent);
                                         getActivity().finish();
 
-                                        Toast.makeText(getContext(), getString(R.string.quit_done), Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(mContext, getString(R.string.quit_done), Toast.LENGTH_SHORT).show();
                                     }
                                 });
                             }
@@ -210,7 +249,7 @@ public class ProfileFragment extends Fragment {
                     @Override
                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                         if (documentSnapshot.get("img_url2") != null) {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                            AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
                             builder.setItems(getResources().getStringArray(R.array.image_select), new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int position) {
@@ -219,8 +258,8 @@ public class ProfileFragment extends Fragment {
                                             @Override
                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                 if (documentSnapshot.get("img_url") != null) {
-                                                    Glide.with(getContext()).load(documentSnapshot.get("img_url")).into(mImg2);
-                                                    Glide.with(getContext()).load(documentSnapshot.get("img_url2")).into(mImg);
+                                                    Glide.with(mContext).load(documentSnapshot.get("img_url")).into(mImg2);
+                                                    Glide.with(mContext).load(documentSnapshot.get("img_url2")).into(mImg);
                                                     Map<String, Object> map = new HashMap<>();
                                                     map.put("img_url", documentSnapshot.get("img_url2"));
                                                     map.put("img_url2", documentSnapshot.get("img_url"));
@@ -235,7 +274,7 @@ public class ProfileFragment extends Fragment {
                                             }
                                         });
                                     } else if (position == 1) {
-                                        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
                                         builder.setMessage(R.string.delete_image)
                                                 .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                                                     @Override
@@ -252,7 +291,7 @@ public class ProfileFragment extends Fragment {
                                                                     @Override
                                                                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                                         if (documentSnapshot.get("img_url3") != null) {
-                                                                            Glide.with(getContext()).load(documentSnapshot.get("img_url3")).into(mImg2);
+                                                                            Glide.with(mContext).load(documentSnapshot.get("img_url3")).into(mImg2);
                                                                             mImg3.setImageDrawable(getResources().getDrawable(R.drawable.avatornew));
                                                                             Map<String, Object> map = new HashMap<>();
                                                                             map.put("img_url2", documentSnapshot.get("img_url3"));
@@ -309,7 +348,7 @@ public class ProfileFragment extends Fragment {
                     @Override
                     public void onSuccess(DocumentSnapshot documentSnapshot) {
                         if (documentSnapshot.get("img_url3") != null) {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                            AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
                             builder.setItems(getResources().getStringArray(R.array.image_select), new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int position) {
@@ -318,8 +357,8 @@ public class ProfileFragment extends Fragment {
                                             @Override
                                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                                 if (documentSnapshot.get("img_url") != null) {
-                                                    Glide.with(getContext()).load(documentSnapshot.get("img_url")).into(mImg3);
-                                                    Glide.with(getContext()).load(documentSnapshot.get("img_url3")).into(mImg);
+                                                    Glide.with(mContext).load(documentSnapshot.get("img_url")).into(mImg3);
+                                                    Glide.with(mContext).load(documentSnapshot.get("img_url3")).into(mImg);
                                                     Map<String, Object> map = new HashMap<>();
                                                     map.put("img_url", documentSnapshot.get("img_url3"));
                                                     map.put("img_url3", documentSnapshot.get("img_url"));
@@ -334,7 +373,7 @@ public class ProfileFragment extends Fragment {
                                             }
                                         });
                                     } else if (position == 1) {
-                                        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
                                         builder.setMessage(R.string.delete_image)
                                                 .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                                                     @Override
@@ -398,11 +437,11 @@ public class ProfileFragment extends Fragment {
                 FirebaseAuth.getInstance().signOut();
                 LoginManager.getInstance().logOut();
 
-                Intent intent = new Intent(getContext(), MainActivity.class);
+                Intent intent = new Intent(mContext, MainActivity.class);
                 startActivity(intent);
                 getActivity().finish();
 
-                Toast.makeText(getContext(), getString(R.string.logout_done), Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, getString(R.string.logout_done), Toast.LENGTH_SHORT).show();
 //                button.buttonFinished();
             }
         });
@@ -447,13 +486,13 @@ public class ProfileFragment extends Fragment {
                     mHobbyList = hobby == null ? mHobbyList : new HashSet<>(Arrays.asList(hobby.split("\\s*,\\s*")));
                     mLangList = lang == null ? mLangList : new HashSet<>(Arrays.asList(lang.split("\\s*,\\s*")));
                     if (img_url != null) {
-                        Glide.with(getContext()).load(img_url).into(mImg);
+                        Glide.with(mContext).load(img_url).into(mImg);
                     }
                     if (img_url2 != null) {
-                        Glide.with(getContext()).load(img_url2).into(mImg2);
+                        Glide.with(mContext).load(img_url2).into(mImg2);
                     }
                     if (img_url3 != null) {
-                        Glide.with(getContext()).load(img_url3).into(mImg3);
+                        Glide.with(mContext).load(img_url3).into(mImg3);
                     }
 
                     setListener(mHobby, mHobbyList, mHobbyGroup);
@@ -487,8 +526,8 @@ public class ProfileFragment extends Fragment {
                 if (data != null) {
                     final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
                     if (imageUri != null) {
-                        Glide.with(getContext()).load(imageUri).into(mImg);
-                        saveImage("img_url", imageUri, uid, true);
+                        Glide.with(mContext).load(imageUri).into(mImg);
+                        saveImage("img_url", imageUri, uid, true, 0);
                     }
                 }
             } else if (requestCode == REQUEST_CODE2) {
@@ -499,11 +538,11 @@ public class ProfileFragment extends Fragment {
                             @Override
                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                 if (documentSnapshot.get("img_url") == null) {
-                                    Glide.with(getContext()).load(imageUri).into(mImg);
-                                    saveImage("img_url", imageUri, uid, true);
+                                    Glide.with(mContext).load(imageUri).into(mImg);
+                                    saveImage("img_url", imageUri, uid, true, 0);
                                 } else {
-                                    Glide.with(getContext()).load(imageUri).into(mImg2);
-                                    saveImage("img_url2", imageUri, uid, false);
+                                    Glide.with(mContext).load(imageUri).into(mImg2);
+                                    saveImage("img_url2", imageUri, uid, false, 1);
                                 }
                             }
                         });
@@ -518,14 +557,14 @@ public class ProfileFragment extends Fragment {
                             @Override
                             public void onSuccess(DocumentSnapshot documentSnapshot) {
                                 if (documentSnapshot.get("img_url") == null) {
-                                    Glide.with(getContext()).load(imageUri).into(mImg);
-                                    saveImage("img_url", imageUri, uid, true);
+                                    Glide.with(mContext).load(imageUri).into(mImg);
+                                    saveImage("img_url", imageUri, uid, true, 0);
                                 } else if (documentSnapshot.get("img_url2") == null) {
-                                    Glide.with(getContext()).load(imageUri).into(mImg2);
-                                    saveImage("img_url2", imageUri, uid, false);
+                                    Glide.with(mContext).load(imageUri).into(mImg2);
+                                    saveImage("img_url2", imageUri, uid, false, 1);
                                 } else {
-                                    Glide.with(getContext()).load(imageUri).into(mImg3);
-                                    saveImage("img_url3", imageUri, uid, false);
+                                    Glide.with(mContext).load(imageUri).into(mImg3);
+                                    saveImage("img_url3", imageUri, uid, false, 2);
                                 }
                             }
                         });
@@ -534,7 +573,7 @@ public class ProfileFragment extends Fragment {
                 }
             }
         }else {
-            Toast.makeText(getContext(), getString(R.string.no_image_selected), Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext, getString(R.string.no_image_selected), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -588,15 +627,30 @@ public class ProfileFragment extends Fragment {
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
-                        Toast.makeText(getContext(), getString(R.string.complete_save), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mContext, getString(R.string.complete_save), Toast.LENGTH_SHORT).show();
                         save.buttonFinished();
                     }
                 });
     }
 
-    private void saveImage(String key, Uri value, String uid, boolean isMainChanged) {
+    private void saveImage(String key, Uri value, String uid, boolean isMainChanged, int which) {
+        TextView textView = view.findViewById(R.id.placeholder);
+        switch (which) {
+            case 0:
+                textView = view.findViewById(R.id.placeholder);
+                break;
+            case 1:
+                textView = view.findViewById(R.id.placeholder2);
+                break;
+            case 2:
+                textView = view.findViewById(R.id.placeholder3);
+                break;
+        }
+
+        textView.setVisibility(View.VISIBLE);
         Long tsLong = System.currentTimeMillis()/1000;
         String ts = tsLong.toString();
+        TextView finalTextView = textView;
         mStorage.child(ts + "/").putFile(value).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
@@ -613,14 +667,13 @@ public class ProfileFragment extends Fragment {
                                     @Override
                                     public void onComplete(@NonNull Task<Void> task) {
                                         if (task.isSuccessful()) {
-                                            Toast.makeText(getContext(), getString(R.string.save_image), Toast.LENGTH_SHORT).show();
+                                            Toast.makeText(mContext, mContext.getString(R.string.save_image), Toast.LENGTH_SHORT).show();
+                                            finalTextView.setVisibility(View.GONE);
                                             if (isMainChanged) {
                                                 replaceImageForChat(uid, downloadUrl);
                                             }
                                         } else {
-                                            PlainDialog dialog = new PlainDialog(getString(R.string.not_save_image));
-                                            assert getFragmentManager() != null;
-                                            dialog.show(getFragmentManager(),"Image not saved.");
+                                            Toast.makeText(mContext, mContext.getString(R.string.not_save_image), Toast.LENGTH_SHORT).show();
                                         }
                                     }
                                 });

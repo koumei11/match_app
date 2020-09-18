@@ -143,8 +143,6 @@ public class MatchOnlyRecyclerAdapter extends RecyclerView.Adapter<MatchOnlyRecy
 
     @Override
     public int getItemCount() {
-        System.out.println("in getItemCount()");
-        System.out.println(mMatchList.size());
         return mMatchList.size();
     }
 

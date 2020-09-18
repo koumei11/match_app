@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.view.LayoutInflater;
+import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
@@ -88,12 +89,15 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, final int position) {
         if (position != 0) {
             ChatViewHolder chatViewHolder = (ChatViewHolder) holder;
-            System.out.println(mChatList);
             ref = database.getReference("/status/" + mChatList.get(position - 1).getUser_id());
             ref.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                     UserState userState = snapshot.getValue(UserState.class);
+                    System.out.println("ユーザー");
+                    System.out.println(snapshot.getKey());
+                    System.out.println("ステート");
+                    System.out.println(snapshot.child("state").getValue());
                     Match match = new Match(snapshot.getKey());
                     if (userState != null && mChatList.contains(match)) {
                         Date now = new Date();
@@ -152,7 +156,7 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                                 intent.putExtra("profile", profile);
                                 intent.putExtra("doc_id", mChatList.get(position - 1).getUser_id());
                                 intent.putExtra("user_img", profile.getImg_url());
-                                intent.putExtra("user_name", mChatList.get(position - 1).getName());
+                                intent.putExtra("user_name", profile.getName());
                                 intent.setFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
                                 mContext.startActivity(intent);
                                 view.setEnabled(true);
@@ -302,9 +306,6 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                 mNewestMessage.setText(theLastMessage);
                 break;
         }
-
-        System.out.println("メッセ");
-        System.out.println(theLastMessage);
 
         theLastMessage = "default";
         theSentDate = "";

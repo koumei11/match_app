@@ -312,8 +312,6 @@ public class ChatActivity extends AppCompatActivity {
                         Gson gson = new Gson();
                         String json = preferences.getString(chat.getTo(), null);
                         if (json != null) {
-                            System.out.println("json内");
-                            System.out.println(chat.getTo());
                             Map map = gson.fromJson(json, Map.class);
                             int messages = (int) (double)map.get("message_stock");
                             System.out.println(messages);

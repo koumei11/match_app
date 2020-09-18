@@ -29,12 +29,12 @@
                 android:id="@+id/detail_image"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:adjustViewBounds="true"
-                android:background="@color/colorWhite"
+                android:background="@color/colorPrimary"
                 android:fitsSystemWindows="true"
-                android:scaleType="centerCrop"
                 android:transitionName="trans1"
+                android:adjustViewBounds="true"
                 app:layout_collapseMode="parallax"
+                android:scaleType="centerCrop"
                 app:srcCompat="@drawable/avatornew" />
 
             <androidx.appcompat.widget.Toolbar
@@ -55,7 +55,8 @@
                     android:layout_height="wrap_content"
                     android:paddingStart="20dp"
                     android:text="名前"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:paddingLeft="20dp" />
 
                 <include
                     android:id="@+id/toolbar_header_view"
@@ -111,7 +112,7 @@
                     android:textSize="10sp" />
             </LinearLayout>
 
-        <TextView
+            <TextView
                 android:id="@+id/name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -206,9 +207,9 @@
 
                 <TextView
                     android:id="@+id/no_hobby"
-                    android:visibility="gone"
                     android:paddingLeft="10dp"
                     android:paddingRight="10dp"
+                    android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
@@ -314,7 +315,8 @@
                         android:layout_weight="1"
                         android:text="歳"
                         android:textAlignment="textEnd"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="#FFFFFF"
+                        android:gravity="end" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -343,7 +345,8 @@
                         android:layout_weight="1"
                         android:text="東京"
                         android:textAlignment="textEnd"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="#FFFFFF"
+                        android:gravity="end" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -372,7 +375,8 @@
                         android:layout_weight="1"
                         android:text="サービス業"
                         android:textAlignment="textEnd"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="#FFFFFF"
+                        android:gravity="end" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -411,164 +415,12 @@
         android:layout_height="wrap_content"
         app:layout_behavior=".utility.ViewBehavior" />
 
+    <FrameLayout
+        android:id="@+id/indicator"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="5dp">
+
+    </FrameLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
-<!--<?xml version="1.0" encoding="utf-8"?>-->
-<!--<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"-->
-<!--    xmlns:app="http://schemas.android.com/apk/res-auto"-->
-<!--    xmlns:tools="http://schemas.android.com/tools"-->
-<!--    android:layout_width="match_parent"-->
-<!--    android:layout_height="match_parent"-->
-<!--    android:background="#FFFFFF"-->
-<!--    tools:context=".UserDetailActivity">-->
-
-<!--    <com.google.android.material.appbar.AppBarLayout-->
-<!--        android:id="@+id/appBarLayout"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:background="@color/colorWhite"-->
-<!--        android:fitsSystemWindows="true"-->
-<!--        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">-->
-
-<!--        <com.google.android.material.appbar.CollapsingToolbarLayout-->
-<!--            android:id="@+id/collapsingToolbarLayout"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:fitsSystemWindows="true"-->
-<!--            app:contentScrim="?attr/colorPrimary"-->
-<!--            app:layout_scrollFlags="scroll|exitUntilCollapsed">-->
-
-<!--            <ImageView-->
-<!--                android:id="@+id/detail_image"-->
-<!--                android:layout_width="400dp"-->
-<!--                android:layout_height="500dp"-->
-<!--                android:background="@color/colorWhite"-->
-<!--                android:transitionName="trans1"-->
-<!--                app:layout_collapseMode="parallax"-->
-<!--                app:srcCompat="@drawable/avatornew" />-->
-
-<!--            <androidx.appcompat.widget.Toolbar-->
-<!--                android:id="@+id/anim_toolbar"-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="?attr/actionBarSize"-->
-<!--                app:layout_collapseMode="pin" />-->
-
-
-<!--        </com.google.android.material.appbar.CollapsingToolbarLayout>-->
-<!--    </com.google.android.material.appbar.AppBarLayout>-->
-
-<!--    <androidx.core.widget.NestedScrollView-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="match_parent"-->
-<!--        android:clipToPadding="false"-->
-<!--        app:layout_constraintTop_toBottomOf="@+id/appBarLayout">-->
-
-<!--        <LinearLayout-->
-<!--            android:id="@+id/detail_overview"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:orientation="vertical">-->
-
-<!--            <TextView-->
-<!--                android:id="@+id/name"-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_marginTop="10dp"-->
-<!--                android:paddingLeft="10dp"-->
-<!--                android:paddingTop="5dp"-->
-<!--                android:paddingBottom="5dp"-->
-<!--                android:text="名前"-->
-<!--                android:textSize="24sp"-->
-<!--                android:textStyle="bold" />-->
-
-<!--            <LinearLayout-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:orientation="horizontal"-->
-<!--                android:paddingLeft="10dp">-->
-
-<!--                <TextView-->
-<!--                    android:id="@+id/age"-->
-<!--                    android:layout_width="wrap_content"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:layout_weight="1"-->
-<!--                    android:text="年齢"-->
-<!--                    android:textSize="14sp" />-->
-
-<!--                <TextView-->
-<!--                    android:id="@+id/textView20"-->
-<!--                    android:layout_width="wrap_content"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:layout_weight="1"-->
-<!--                    android:text="・" />-->
-
-<!--                <TextView-->
-<!--                    android:id="@+id/address"-->
-<!--                    android:layout_width="wrap_content"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:layout_weight="1"-->
-<!--                    android:text="居住地" />-->
-
-<!--            </LinearLayout>-->
-
-<!--            <LinearLayout-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:orientation="vertical">-->
-
-<!--                <LinearLayout-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:layout_marginTop="30dp"-->
-<!--                    android:orientation="vertical">-->
-
-<!--                    <TextView-->
-<!--                        android:id="@+id/textView16"-->
-<!--                        android:layout_width="match_parent"-->
-<!--                        android:layout_height="wrap_content"-->
-<!--                        android:paddingLeft="10dp"-->
-<!--                        android:paddingBottom="5dp"-->
-<!--                        android:text="自己紹介"-->
-<!--                        android:textSize="16sp"-->
-<!--                        android:textStyle="bold" />-->
-
-<!--                    <TextView-->
-<!--                        android:id="@+id/self_intro"-->
-<!--                        android:layout_width="match_parent"-->
-<!--                        android:layout_height="1000dp"-->
-<!--                        android:layout_weight="1"-->
-<!--                        android:paddingLeft="10dp"-->
-<!--                        android:paddingRight="10dp"-->
-<!--                        android:text="TextView" />-->
-<!--                </LinearLayout>-->
-
-<!--            </LinearLayout>-->
-
-<!--        </LinearLayout>-->
-<!--    </androidx.core.widget.NestedScrollView>-->
-
-<!--    <LinearLayout-->
-<!--        android:id="@+id/linearLayout3"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="80dp"-->
-<!--        android:layout_gravity="bottom"-->
-<!--        android:gravity="center"-->
-<!--        android:orientation="horizontal"-->
-<!--        app:layout_constraintBottom_toBottomOf="parent">-->
-
-<!--        <ImageButton-->
-<!--            android:id="@+id/rejectBtn"-->
-<!--            android:layout_width="50dp"-->
-<!--            android:layout_height="50dp"-->
-<!--            android:background="@drawable/ic_launcher_bad" />-->
-
-<!--        <ImageButton-->
-<!--            android:id="@+id/acceptBtn"-->
-<!--            android:layout_width="50dp"-->
-<!--            android:layout_height="50dp"-->
-<!--            android:layout_marginLeft="30dp"-->
-<!--            android:background="@drawable/ic_launcher_good"-->
-<!--            android:elevation="10dp" />-->
-<!--    </LinearLayout>-->
-
-<!--</androidx.coordinatorlayout.widget.CoordinatorLayout>-->

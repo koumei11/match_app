@@ -168,6 +168,10 @@ public class HomeActivity extends AppCompatActivity implements ChatFragment.Mess
                 }
             }
             break;
+
+            case 202:
+                mViewPager.setCurrentItem(2);
+                break;
         }
     }
 
@@ -184,56 +188,10 @@ public class HomeActivity extends AppCompatActivity implements ChatFragment.Mess
     @Override
     public void onResume() {
         super.onResume();
-//        System.out.println("onResume in ChatFragment");
-//        notificationListener = chatsRef.addChildEventListener(new ChildEventListener() {
-//            private long attachTime = System.currentTimeMillis();
-//            @Override
-//            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-//                long receivedTime = (long) snapshot.child("time_stamp").getValue();
-//                if (preferences.getBoolean("switch", true)) {
-//                    if (receivedTime > attachTime) {
-//                        if (snapshot.child("to").getValue().equals(uid) && !(boolean) snapshot.child("isSeen").getValue()) {
-//                            mStore.collection("Users").document((String) snapshot.child("from").getValue())
-//                                    .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-//                                @Override
-//                                public void onSuccess(DocumentSnapshot documentSnapshot) {
-//                                    Profile profile = documentSnapshot.toObject(Profile.class);
-//                                    if (profile != null) {
-//                                        MessageNotification.sendNotification(profile.getName(), (String) snapshot.child("message").getValue(), context);
-//                                    }
-//                                }
-//                            });
-//                        }
-//                    }
-//                }
-//            }
-//
-//            @Override
-//            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-//
-//            }
-//
-//            @Override
-//            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-//
-//            }
-//
-//            @Override
-//            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-//
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
     }
 
     @Override
     public void onPause() {
         super.onPause();
-//        System.out.println("onPause in ChatFragment");
-//        chatsRef.removeEventListener(notificationListener);
     }
 }

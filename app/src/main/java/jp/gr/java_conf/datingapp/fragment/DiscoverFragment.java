@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import jp.gr.java_conf.datingapp.R;
+import jp.gr.java_conf.datingapp.dialog.MatchDialog;
 import jp.gr.java_conf.datingapp.model.Profile;
 import jp.gr.java_conf.datingapp.model.SwipeCard;
 import jp.gr.java_conf.datingapp.utility.MatchHandler;
@@ -169,7 +170,6 @@ public class DiscoverFragment extends Fragment {
                         public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                             if (task.isSuccessful()) {
                                 if (task.getResult() != null && task.getResult().getData() != null) {
-                                    Toast.makeText(getContext(), getString(R.string.match_found), Toast.LENGTH_SHORT).show();
                                     MatchHandler.storeMatchInDatabase(docId, name, getContext());
                                 }
                                 Map<String, Object> map = new HashMap<>();

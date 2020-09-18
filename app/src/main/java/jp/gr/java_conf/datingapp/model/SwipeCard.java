@@ -5,7 +5,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
@@ -51,17 +55,8 @@ public class SwipeCard {
     @View(R.id.constraint_prof)
     private ConstraintLayout constraintLayout;
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    @Click(R.id.constraint_prof)
-    private void viewDetail() {
-        constraintLayout.setEnabled(false);
-        Intent intent = new Intent(mContext, UserDetailActivity.class);
-        intent.putExtra("profile", mProfile);
-        intent.putExtra("user_id", mUserId);
-        ActivityOptionsCompat compat = ActivityOptionsCompat.makeSceneTransitionAnimation((Activity) mContext, profileImageView, "trans1");
-        ((Activity) mContext).startActivityForResult(intent, REQUEST_CODE, compat.toBundle());
-        constraintLayout.setEnabled(true);
-    }
+    @View(R.id.image_indicator)
+    private FrameLayout imageIndicator;
 
     private Profile mProfile;
     private Context mContext;
@@ -77,8 +72,21 @@ public class SwipeCard {
         mUserId = userId;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @Click(R.id.constraint_prof)
+    private void viewDetail() {
+        constraintLayout.setEnabled(false);
+        Intent intent = new Intent(mContext, UserDetailActivity.class);
+        intent.putExtra("profile", mProfile);
+        intent.putExtra("user_id", mUserId);
+        ActivityOptionsCompat compat = ActivityOptionsCompat.makeSceneTransitionAnimation((Activity) mContext, profileImageView, "trans1");
+        ((Activity) mContext).startActivityForResult(intent, REQUEST_CODE, compat.toBundle());
+        constraintLayout.setEnabled(true);
+    }
+
     @Resolve
     private void onResolved() throws ParseException {
+
         if (mProfile.getImg_url() == null || mProfile.getImg_url().equals("")) {
             profileImageView.setImageResource(R.drawable.avatornew);
         } else {
@@ -90,6 +98,169 @@ public class SwipeCard {
         int age = AgeCalculation.calculate(mProfile.getDate());
         String ageStr = age + "歳";
         ageTxt.setText(ageStr);
+
+        int totalImage = 0;
+        if (mProfile.getImg_url() != null && !mProfile.getImg_url().equals("")) {
+            totalImage += 1;
+        }
+
+        if (mProfile.getImg_url2() != null && !mProfile.getImg_url2().equals("")) {
+            totalImage += 1;
+        }
+
+        if (mProfile.getImg_url3() != null && !mProfile.getImg_url3().equals("")) {
+            totalImage += 1;
+        }
+
+        LayoutInflater inflater = LayoutInflater.from(mContext);
+        if (totalImage == 3) {
+            android.view.View viewIndicator = inflater.inflate(R.layout.three_indicator, null);
+            LinearLayout linearLayout = viewIndicator.findViewById(R.id.indicator_frame3);
+            linearLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT));
+            imageIndicator.addView(linearLayout);
+            System.out.println("3枚");
+        } else if (totalImage == 2) {
+            android.view.View viewIndicator = inflater.inflate(R.layout.two_indicator, null);
+            LinearLayout linearLayout = viewIndicator.findViewById(R.id.indicator_frame2);
+            linearLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT));
+            imageIndicator.addView(linearLayout);
+            System.out.println("2枚");
+        } else {
+            android.view.View viewIndicator = inflater.inflate(R.layout.one_indicator, null);
+            LinearLayout linearLayout = viewIndicator.findViewById(R.id.indicator_frame1);
+            linearLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT));
+            imageIndicator.addView(linearLayout);
+            System.out.println("1枚");
+        }
+
+        Position currentPos = new Position(0);
+        profileImageView.setOnTouchListener(new android.view.View.OnTouchListener() {
+            @Override
+            public boolean onTouch(android.view.View view, MotionEvent motionEvent) {
+                if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                    int totalImage = 0;
+
+                    if (mProfile.getImg_url() != null && !mProfile.getImg_url().equals("")) {
+                        totalImage += 1;
+                    }
+
+                    if (mProfile.getImg_url2() != null && !mProfile.getImg_url2().equals("")) {
+                        totalImage += 1;
+                    }
+
+                    if (mProfile.getImg_url3() != null && !mProfile.getImg_url3().equals("")) {
+                        totalImage += 1;
+                    }
+
+                    if (motionEvent.getX() >= view.getWidth() / 2) {
+                        if (totalImage == 2) {
+                            if (currentPos.getPos() == 0) {
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator1)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator2)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_rounded));
+
+                                Glide.with(mContext).load(mProfile.getImg_url2()).into(profileImageView);
+                                currentPos.setPos(currentPos.getPos() + 1);
+                            }
+                        } else if (totalImage == 3) {
+                            if (currentPos.getPos() == 0) {
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator1)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator2)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator3)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+                                Glide.with(mContext).load(mProfile.getImg_url2()).into(profileImageView);
+                                currentPos.setPos(currentPos.getPos() + 1);
+                                System.out.println("２枚目");
+                            } else if (currentPos.getPos() == 1) {
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator1)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator2)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator3)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_rounded));
+                                Glide.with(mContext).load(mProfile.getImg_url3()).into(profileImageView);
+                                currentPos.setPos(currentPos.getPos() + 1);
+                                System.out.println("３枚目");
+                            }
+                        }
+                        mProfile.setPos(currentPos.getPos());
+                    } else if (motionEvent.getX() < view.getWidth() / 2) {
+                        if (totalImage == 2) {
+                            if (currentPos.getPos() == 1) {
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator1)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator2)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                                Glide.with(mContext).load(mProfile.getImg_url()).into(profileImageView);
+                                currentPos.setPos(currentPos.getPos() - 1);
+                            }
+                        } else if (totalImage == 3) {
+                            if (currentPos.getPos() == 1) {
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator1)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator2)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator3)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                                Glide.with(mContext).load(mProfile.getImg_url()).into(profileImageView);
+                                currentPos.setPos(currentPos.getPos() - 1);
+                            } else if (currentPos.getPos() == 2) {
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator1)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator2)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_rounded));
+
+                                imageIndicator.getChildAt(0)
+                                        .findViewById(R.id.indicator3)
+                                        .setBackground(mContext.getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                                Glide.with(mContext).load(mProfile.getImg_url2()).into(profileImageView);
+                                currentPos.setPos(currentPos.getPos() - 1);
+                            }
+                        }
+                        mProfile.setPos(currentPos.getPos());
+                    }
+                }
+                return true;
+            }
+        });
     }
 
     @SwipeOut

@@ -9,9 +9,13 @@ import android.graphics.Point;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -44,6 +48,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.dialog.PlainDialog;
+import jp.gr.java_conf.datingapp.model.Position;
 import jp.gr.java_conf.datingapp.model.Profile;
 import jp.gr.java_conf.datingapp.model.UserState;
 import jp.gr.java_conf.datingapp.utility.AgeCalculation;
@@ -68,6 +73,7 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
     private ChipGroup mLang;
     private TextView mNohobby;
     private TextView mNolang;
+    private FrameLayout indicator;
     private CircleImageView online;
     private TextView mLastSeen;
     private SwipePlaceHolderView mSwipeView;
@@ -92,9 +98,6 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
     @BindView(R.id.toolbar_header_view)
     HeaderView toolbarHeaderView;
 
-//    @BindView(R.id.float_header_view)
-//    HeaderView floatHeaderView;
-
     private boolean isHideToolbarView = false;
 
     @Override
@@ -118,6 +121,7 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
         mNolang = findViewById(R.id.no_lang);
         online = findViewById(R.id.online_detail);
         mLastSeen = findViewById(R.id.last_seen);
+        indicator = findViewById(R.id.indicator);
         chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
         mAuth = FirebaseAuth.getInstance();
         mStore = FirebaseFirestore.getInstance();
@@ -162,6 +166,49 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
         Profile profile = (Profile) intent.getSerializableExtra("profile");
         String userId = intent.getStringExtra("user_id");
 
+        int totalImage = 0;
+
+        if (profile.getImg_url() != null && !profile.getImg_url().equals("")) {
+            totalImage += 1;
+        }
+
+        if (profile.getImg_url2() != null && !profile.getImg_url2().equals("")) {
+            totalImage += 1;
+        }
+
+        if (profile.getImg_url3() != null && !profile.getImg_url3().equals("")) {
+            totalImage += 1;
+        }
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        if (totalImage == 3) {
+            android.view.View viewIndicator = inflater.inflate(R.layout.three_indicator, null);
+            LinearLayout linearLayout = viewIndicator.findViewById(R.id.indicator_frame3);
+            linearLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT));
+            indicator.addView(linearLayout);
+            System.out.println("3枚");
+        } else if (totalImage == 2) {
+            android.view.View viewIndicator = inflater.inflate(R.layout.two_indicator, null);
+            LinearLayout linearLayout = viewIndicator.findViewById(R.id.indicator_frame2);
+            linearLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT));
+            indicator.addView(linearLayout);
+            System.out.println("2枚");
+        } else {
+            android.view.View viewIndicator = inflater.inflate(R.layout.one_indicator, null);
+            LinearLayout linearLayout = viewIndicator.findViewById(R.id.indicator_frame1);
+            linearLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT));
+            indicator.addView(linearLayout);
+            System.out.println("1枚");
+        }
+
+        Position currentPos = new Position(0);
+
         database = FirebaseDatabase.getInstance();
         ref = database.getReference("/status/" + userId);
         ref.addValueEventListener(new ValueEventListener() {
@@ -202,100 +249,217 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
         collapsingToolbarLayout.getLayoutParams().height = windowSize.y - WindowSizeGetter.dpToPx(200);
         mImageView.getLayoutParams().width = windowSize.x;
         mImageView.getLayoutParams().height = windowSize.y - WindowSizeGetter.dpToPx(200);
-        if (profile != null) {
-            if (profile.getImg_url() != null && !profile.getImg_url().equals("")) {
-                Uri url = Uri.parse(profile.getImg_url());
-                Glide.with(this).load(url).into(mImageView);
-                Glide.with(this).load(url).into(mCircleImageView);
-            }
-            if (profile.getName() != null && !profile.getName().equals("")) {
-                mToolbarName.setText(profile.getName());
-                mName.setText(profile.getName());
-            }
-            if (profile.getDate() != null) {
-                String birthDayString = profile.getDate();
-                int age = 0;
-                try {
-                    age = AgeCalculation.calculate(birthDayString);
-                } catch (ParseException e) {
-                    PlainDialog dialog = new PlainDialog(getString(R.string.no_user));
-                    assert getFragmentManager() != null;
-                    dialog.show(getSupportFragmentManager(),"Error occurred.");
+
+        if (profile.getImg_url() != null && !profile.getImg_url().equals("")) {
+            Uri url = Uri.parse(profile.getImg_url());
+            if (profile.getPos() != 0) {
+                if (profile.getPos() == 1) {
+                    if (totalImage == 3) {
+                        indicator.getChildAt(0)
+                                .findViewById(R.id.indicator1)
+                                .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+                        indicator.getChildAt(0)
+                                .findViewById(R.id.indicator2)
+                                .setBackground(getResources().getDrawable(R.drawable.textview_rounded));
+                        indicator.getChildAt(0)
+                                .findViewById(R.id.indicator3)
+                                .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+                    } else {
+                        indicator.getChildAt(0)
+                                .findViewById(R.id.indicator1)
+                                .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+                        indicator.getChildAt(0)
+                                .findViewById(R.id.indicator2)
+                                .setBackground(getResources().getDrawable(R.drawable.textview_rounded));
+                    }
+                    Glide.with(this).load(profile.getImg_url2()).into(mImageView);
+                    currentPos.setPos(1);
+                } else {
+                    indicator.getChildAt(0)
+                            .findViewById(R.id.indicator1)
+                            .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+                    indicator.getChildAt(0)
+                            .findViewById(R.id.indicator2)
+                            .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+                    indicator.getChildAt(0)
+                            .findViewById(R.id.indicator3)
+                            .setBackground(getResources().getDrawable(R.drawable.textview_rounded));
+                    Glide.with(this).load(profile.getImg_url3()).into(mImageView);
+                    currentPos.setPos(2);
                 }
-                mAge.setText(age + "歳");
-                mDetailAge.setText(age + "歳");
-            }
-            if (profile.getAddress() != null && !profile.getAddress().equals("")) {
-                mAddress.setText(profile.getAddress());
-                mDetailAddress.setText(profile.getAddress());
-            }
-            if (profile.getJob() != null && !profile.getJob().equals("")) {
-                mDetailJob.setText(profile.getJob());
-            }
-            if (profile.getDesc() != null && !profile.getDesc().equals("")) {
-                mDescription.setText(profile.getDesc());
-            }
-            if (profile.getHobby() != null && !profile.getHobby().equals("")) {
-                Set<String> hobbySet = new HashSet<>(Arrays.asList(profile.getHobby().split(",")));
-                displayChipData(hobbySet, mHobbies);
-                mNohobby.setVisibility(View.GONE);
             } else {
-                mNohobby.setVisibility(View.VISIBLE);
-                mNohobby.setText(getString(R.string.no_hobby));
+                Glide.with(this).load(url).into(mImageView);
             }
-            if (profile.getLang() != null && !profile.getLang().equals("")) {
-                Set<String> langSet = new HashSet<>(Arrays.asList(profile.getLang().split(",")));
-                displayChipData(langSet, mLang);
-                mNolang.setVisibility(View.GONE);
-            } else {
-                mNolang.setVisibility(View.VISIBLE);
-                mNolang.setText(getString(R.string.no_lang));
+            Glide.with(this).load(url).into(mCircleImageView);
+        }
+        if (profile.getName() != null && !profile.getName().equals("")) {
+            mToolbarName.setText(profile.getName());
+            mName.setText(profile.getName());
+        }
+        if (profile.getDate() != null) {
+            String birthDayString = profile.getDate();
+            int age = 0;
+            try {
+                age = AgeCalculation.calculate(birthDayString);
+            } catch (ParseException e) {
+                PlainDialog dialog = new PlainDialog(getString(R.string.no_user));
+                assert getFragmentManager() != null;
+                dialog.show(getSupportFragmentManager(),"Error occurred.");
             }
+            mAge.setText(age + "歳");
+            mDetailAge.setText(age + "歳");
+        }
+        if (profile.getAddress() != null && !profile.getAddress().equals("")) {
+            mAddress.setText(profile.getAddress());
+            mDetailAddress.setText(profile.getAddress());
+        }
+        if (profile.getJob() != null && !profile.getJob().equals("")) {
+            mDetailJob.setText(profile.getJob());
+        }
+        if (profile.getDesc() != null && !profile.getDesc().equals("")) {
+            mDescription.setText(profile.getDesc());
+        }
+        if (profile.getHobby() != null && !profile.getHobby().equals("")) {
+            Set<String> hobbySet = new HashSet<>(Arrays.asList(profile.getHobby().split(",")));
+            displayChipData(hobbySet, mHobbies);
+            mNohobby.setVisibility(View.GONE);
+        } else {
+            mNohobby.setVisibility(View.VISIBLE);
+            mNohobby.setText(getString(R.string.no_hobby));
+        }
+        if (profile.getLang() != null && !profile.getLang().equals("")) {
+            Set<String> langSet = new HashSet<>(Arrays.asList(profile.getLang().split(",")));
+            displayChipData(langSet, mLang);
+            mNolang.setVisibility(View.GONE);
+        } else {
+            mNolang.setVisibility(View.VISIBLE);
+            mNolang.setText(getString(R.string.no_lang));
         }
 
-//        notificationListener = chatsRef.addChildEventListener(new ChildEventListener() {
-//            private long attachTime = System.currentTimeMillis();
-//            @Override
-//            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-//                long receivedTime = (long) snapshot.child("time_stamp").getValue();
-//                if (preferences.getBoolean("switch", true)) {
-//                    if (receivedTime > attachTime) {
-//                        if (snapshot.child("to").getValue().equals(mAuth.getCurrentUser().getUid()) && !(boolean) snapshot.child("isSeen").getValue()) {
-//                            mStore.collection("Users").document((String) snapshot.child("from").getValue())
-//                                    .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-//                                @Override
-//                                public void onSuccess(DocumentSnapshot documentSnapshot) {
-//                                    Profile profile = documentSnapshot.toObject(Profile.class);
-//                                    if (profile != null) {
-//                                        MessageNotification.sendNotification(profile.getName(), (String) snapshot.child("message").getValue(), context);
-//                                    }
-//                                }
-//                            });
-//                        }
-//                    }
-//                }
-//            }
-//
-//            @Override
-//            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-//
-//            }
-//
-//            @Override
-//            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-//
-//            }
-//
-//            @Override
-//            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-//
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
+
+        mImageView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                int totalImage = 0;
+                if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+
+                    if (profile.getImg_url() != null && !profile.getImg_url().equals("")) {
+                        totalImage += 1;
+                    }
+
+                    if (profile.getImg_url2() != null && !profile.getImg_url2().equals("")) {
+                        totalImage += 1;
+                    }
+
+                    if (profile.getImg_url3() != null && !profile.getImg_url3().equals("")) {
+                        totalImage += 1;
+                    }
+
+
+                }
+
+                if (motionEvent.getX() >= view.getWidth() / 2) {
+                    if (totalImage == 2) {
+                        if (currentPos.getPos() == 0) {
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator1)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator2)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_rounded));
+
+                            Glide.with(context).load(profile.getImg_url2()).into(mImageView);
+                            currentPos.setPos(currentPos.getPos() + 1);
+                        }
+                    } else if (totalImage == 3) {
+                        if (currentPos.getPos() == 0) {
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator1)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator2)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator3)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+                            Glide.with(context).load(profile.getImg_url2()).into(mImageView);
+                            currentPos.setPos(currentPos.getPos() + 1);
+                            System.out.println("２枚目");
+                        } else if (currentPos.getPos() == 1) {
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator1)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator2)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator3)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_rounded));
+                            Glide.with(context).load(profile.getImg_url3()).into(mImageView);
+                            currentPos.setPos(currentPos.getPos() + 1);
+                            System.out.println("３枚目");
+                        }
+                    }
+                    profile.setPos(currentPos.getPos());
+                } else if (motionEvent.getX() < view.getWidth() / 2) {
+                    if (totalImage == 2) {
+                        if (currentPos.getPos() == 1) {
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator1)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator2)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                            Glide.with(context).load(profile.getImg_url()).into(mImageView);
+                            currentPos.setPos(currentPos.getPos() - 1);
+                        }
+                    } else if (totalImage == 3) {
+                        if (currentPos.getPos() == 1) {
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator1)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator2)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator3)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                            Glide.with(context).load(profile.getImg_url()).into(mImageView);
+                            currentPos.setPos(currentPos.getPos() - 1);
+                        } else if (currentPos.getPos() == 2) {
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator1)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator2)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_rounded));
+
+                            indicator.getChildAt(0)
+                                    .findViewById(R.id.indicator3)
+                                    .setBackground(getResources().getDrawable(R.drawable.textview_light_rounded));
+
+                            Glide.with(context).load(profile.getImg_url2()).into(mImageView);
+                            currentPos.setPos(currentPos.getPos() - 1);
+                        }
+                    }
+                    profile.setPos(currentPos.getPos());
+                }
+                return true;
+            }
+        });
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -333,7 +497,6 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        finish();
     }
 
     private void displayChipData(final Set<String> chipList, final ChipGroup chipGroup) {
@@ -350,13 +513,11 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
     protected void onResume() {
         super.onResume();
         mImageView.setTransitionName("");
-        System.out.println("onResume in ChatFragment");
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        System.out.println("onPause in ChatFragment");
 //        chatsRef.removeEventListener(notificationListener);
     }
 }

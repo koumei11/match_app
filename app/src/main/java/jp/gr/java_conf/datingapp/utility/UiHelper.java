@@ -41,7 +41,6 @@ public class UiHelper {
                 dialogInterface.dismiss();
             }
         });
-
         builder.create().show();
     }
 
