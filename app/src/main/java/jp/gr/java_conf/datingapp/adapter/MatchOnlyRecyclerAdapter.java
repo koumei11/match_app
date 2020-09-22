@@ -15,8 +15,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
@@ -29,6 +32,7 @@ import java.util.Map;
 import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.ChatActivity;
 import jp.gr.java_conf.datingapp.R;
+import jp.gr.java_conf.datingapp.model.Chat;
 import jp.gr.java_conf.datingapp.model.Match;
 import jp.gr.java_conf.datingapp.model.Profile;
 
@@ -55,7 +59,13 @@ public class MatchOnlyRecyclerAdapter extends RecyclerView.Adapter<MatchOnlyRecy
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        mStore.collection("Users").document(mMatchList.get(position).getUser_id())
+        String userId;
+        if (mMatchList.get(position).getUser1().equals(myId)) {
+            userId = mMatchList.get(position).getUser2();
+        } else {
+            userId = mMatchList.get(position).getUser1();
+        }
+        mStore.collection("Users").document(userId)
                 .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -67,7 +77,7 @@ public class MatchOnlyRecyclerAdapter extends RecyclerView.Adapter<MatchOnlyRecy
                     } else {
                         holder.circleImageView.setImageDrawable(mContext.getResources().getDrawable(R.drawable.avatornew));
                     }
-                    holder.userName.setText(mMatchList.get(position).getName());
+                    holder.userName.setText(profile.getName());
 
                     Date now = new Date();
                     if (mMatchList.get(position).getTime_stamp() + 1000 * 60 * 60 * 24 < now.getTime()) {
@@ -80,9 +90,9 @@ public class MatchOnlyRecyclerAdapter extends RecyclerView.Adapter<MatchOnlyRecy
                         public void onClick(View view) {
                             Intent intent = new Intent(mContext, ChatActivity.class);
                             intent.putExtra("profile", profile);
-                            intent.putExtra("doc_id", mMatchList.get(position).getUser_id());
+                            intent.putExtra("doc_id", userId);
                             intent.putExtra("user_img", profile.getImg_url());
-                            intent.putExtra("user_name", mMatchList.get(position).getName());
+                            intent.putExtra("user_name", profile.getName());
                             mContext.startActivity(intent);
                         }
                     });
@@ -95,10 +105,7 @@ public class MatchOnlyRecyclerAdapter extends RecyclerView.Adapter<MatchOnlyRecy
                             builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
-                                    System.out.println("はい");
-                                    Map<String, Object> map = new HashMap<>();
-                                    map.put("isBlock", true);
-                                    blockUser(mMatchList.get(position).getUser_id(), map);
+                                    blockUser(userId);
                                 }
                             });
                             builder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
@@ -118,27 +125,50 @@ public class MatchOnlyRecyclerAdapter extends RecyclerView.Adapter<MatchOnlyRecy
         });
     }
 
-    private void blockUser(String uid, Map<String, Object> block) {
-        mStore.collection("Users").document(uid).collection("Match")
-                .document(myId).set(block, SetOptions.merge())
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        mStore.collection("Users").document(myId)
-                                .collection("Match").document(uid).set(block, SetOptions.merge())
-                                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                    @Override
-                                    public void onSuccess(Void aVoid) {
-                                        Map<String, Object> map = new HashMap<>();
-                                        map.put("blocked_user_id", uid);
-                                        map.put("block_user_id", myId);
-                                        map.put("isBlock", true);
-                                        map.put("time_stamp", System.currentTimeMillis());
-                                        blockRef.child("Block").push().setValue(map);
-                                    }
-                                });
+    private void blockUser(String blockUser) {
+        DatabaseReference matchRef = FirebaseDatabase.getInstance().getReference().child("Match");
+        matchRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshots) {
+                for (DataSnapshot snapshot : snapshots.getChildren())  {
+                    if ((snapshot.child("user1").getValue().equals(mAuth.getCurrentUser().getUid()) && snapshot.child("user2").getValue().equals(blockUser)) ||
+                            ((snapshot.child("user1").getValue().equals(blockUser) && snapshot.child("user2").getValue().equals(mAuth.getCurrentUser().getUid()))))
+                    {
+                        if (snapshot.getKey() != null) {
+                            matchRef.child(snapshot.getKey()).child("block").setValue(true);
+                        }
                     }
-                });
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+        Map<String, Object> map = new HashMap<>();
+        map.put("blocked_user_id", blockUser);
+        map.put("block_user_id", myId);
+        map.put("isBlock", true);
+        map.put("time_stamp", System.currentTimeMillis());
+        database.getReference("Block").push().setValue(map);
+        database.getReference("Chats").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshots) {
+                for (DataSnapshot snapshot : snapshots.getChildren())  {
+                    Chat chat = snapshot.getValue(Chat.class);
+                    if ((chat.getFrom().equals(myId) || chat.getFrom().equals(blockUser)) &&
+                            (chat.getTo().equals(myId) || chat.getTo().equals(blockUser))) {
+                        snapshot.getRef().removeValue();
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 
     @Override

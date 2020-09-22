@@ -60,17 +60,17 @@ public class ChatFragment extends Fragment {
     private List<String> mUsers;
     private List<String> mMatchUsers;
     private List<String> mInvalidUsers;
-    private QuerySnapshot snapshotsData;
+    private DataSnapshot snapshotsData;
     private FirebaseAuth mAuth;
     private String uid;
     private FirebaseFirestore mStore;
     private View view;
-    private ChildEventListener chatListener;
     private SharedPreferences preferences;
     private SharedPreferences.Editor editor;
     private DatabaseReference chatsRef;
     private ProgressBar progressBar;
     private String tempVal;
+    private DatabaseReference reference;
 
     public ChatFragment() {
         // Required empty public constructor
@@ -79,6 +79,7 @@ public class ChatFragment extends Fragment {
     public interface MessageListener {
         void onMessageReceived();
         void onAllMessageSeen();
+        void onMatchCreated();
     }
 
     private MessageListener mListener;
@@ -107,12 +108,15 @@ public class ChatFragment extends Fragment {
         mAuth = FirebaseAuth.getInstance();
         uid = mAuth.getCurrentUser().getUid();
         mStore = FirebaseFirestore.getInstance();
+        reference = FirebaseDatabase.getInstance().getReference();
         mMatchRecyclerView.setHasFixedSize(true);
         progressBar = view.findViewById(R.id.progress_bar_chat);
-        preferences  = getContext().getSharedPreferences("DATA", Context.MODE_PRIVATE);
+        preferences = getContext().getSharedPreferences("DATA", Context.MODE_PRIVATE);
         editor = preferences.edit();
         mMatchRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
+        chatsRef = reference.child("Chats");
+
+        progressBar.setVisibility(View.VISIBLE);
         mMatchRecyclerView.setVisibility(View.GONE);
 
         mMatchRecyclerAdapter = new MatchRecyclerAdapter(getContext(), mChatList, mMatchList);
@@ -121,13 +125,13 @@ public class ChatFragment extends Fragment {
 
         retrieveMatchUserData();
 
-        DatabaseReference profileRef = FirebaseDatabase.getInstance().getReference("ProfileImage");
+        DatabaseReference profileRef = reference.child("ProfileImage");
         profileRef.addChildEventListener(new ChildEventListener() {
             private long attachTIme = System.currentTimeMillis();
             @Override
             public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
                 long changeTime = (long) snapshot.child("time_stamp").getValue();
-                if (changeTime > attachTIme) {
+                if (changeTime >= attachTIme) {
                     if (mMatchUsers.contains(snapshot.getKey())) {
                         updateMatchingUsers(view);
                     }
@@ -157,7 +161,7 @@ public class ChatFragment extends Fragment {
             }
         });
 
-        FirebaseDatabase.getInstance().getReference("Match").addChildEventListener(new ChildEventListener() {
+        reference.child("Match").addChildEventListener(new ChildEventListener() {
 
             private long attachTime = System.currentTimeMillis();
 
@@ -165,7 +169,13 @@ public class ChatFragment extends Fragment {
             public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
                 long matchTime = (long) snapshot.child("time_stamp").getValue();
                 if (matchTime > attachTime) {
-                    retrieveMatchUserData();
+                    if (snapshot.child("user1").getValue().equals(uid) || snapshot.child("user2").getValue().equals(uid)) {
+                        retrieveMatchUserData();
+                        if (preferences.getInt("new_match", 0) <= 0) {
+                            editor.putInt("new_match", 1).apply();
+                        }
+                        mListener.onMatchCreated();
+                    }
                 }
             }
 
@@ -203,39 +213,41 @@ public class ChatFragment extends Fragment {
     }
 
     private void retrieveMatchUserData() {
-        mStore.collection("Users").document(uid)
-                .collection("Match").orderBy("time_stamp", Query.Direction.DESCENDING).whereEqualTo("isBlock", false).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+        reference.child("Match").orderByChild("block").equalTo(false).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    if (task.getResult() != null) {
-                        snapshotsData = task.getResult();
-                        createMatchUsers(snapshotsData);
-                        attachChatListener(view);
-                        attachBlockListener(view);
-                        mMatchRecyclerView.setVisibility(View.VISIBLE);
-                        progressBar.setVisibility(View.GONE);
-                    }
-                } else {
-                    System.out.println(task.getResult());
-                }
+            public void onDataChange(@NonNull DataSnapshot snapshots) {
+                snapshotsData = snapshots;
+                createMatchUsers(snapshotsData);
+                attachChatListener(view);
+                attachBlockListener(view);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
             }
         });
     }
 
-    private void createMatchUsers(QuerySnapshot snapshotsData) {
-        for (DocumentSnapshot documentSnapshot : snapshotsData) {
-            Match match = documentSnapshot.toObject(Match.class);
-            if (match != null) {
-                mMatchUsers.add(match.getUser_id());
+    private void createMatchUsers(DataSnapshot snapshotsData) {
+        for (DataSnapshot snapshot : snapshotsData.getChildren()) {
+            if (snapshot.child("user1").getValue().equals(uid) || snapshot.child("user2").getValue().equals(uid)) {
+                Match match = snapshot.getValue(Match.class);
+                if (match != null) {
+                    if (match.getUser1().equals(uid)) {
+                        mMatchUsers.add(match.getUser2());
+                    } else {
+                        mMatchUsers.add(match.getUser1());
+                    }
+                }
             }
         }
     }
 
     private void updateToken(String token) {
-        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Token");
+        DatabaseReference tokenRef = reference.child("Token");
         Token tokenInstance = new Token(token);
-        reference.child(uid).setValue(tokenInstance);
+        tokenRef.child(uid).setValue(tokenInstance);
     }
 
     private void attachChatListener(View view) {
@@ -265,7 +277,7 @@ public class ChatFragment extends Fragment {
         });
 
         // リスナーアタッチ
-        chatListener = chatsRef.orderByChild("time_stamp").addChildEventListener(new ChildEventListener() {
+        chatsRef.orderByChild("time_stamp").addChildEventListener(new ChildEventListener() {
 
             private long attachTime = System.currentTimeMillis();
 
@@ -274,17 +286,15 @@ public class ChatFragment extends Fragment {
                 long receivedTime = (long) snapshot.child("time_stamp").getValue();
                 if (!snapshot.getKey().equals(tempVal))
                     setChatMetaData(snapshot);
-                    tempVal = snapshot.getKey();
-                    if (!snapshot.getKey().equals(previousChildName)) {
-                        if (receivedTime > attachTime) {
-                            if (snapshot.child("to").getValue().equals(uid)
-                                    || snapshot.child("from").getValue().equals(uid)) {
-                                mListener.onMessageReceived();
-                                addChatUsers(snapshot, view);
-                                updateMatchingUsers(view);
-                            }
+                    if (receivedTime > attachTime) {
+                        if (snapshot.child("to").getValue().equals(uid)
+                                || snapshot.child("from").getValue().equals(uid)) {
+                            mListener.onMessageReceived();
+                            addChatUsers(snapshot, view);
+                            updateMatchingUsers(view);
                         }
                     }
+
             }
 
             @Override
@@ -334,7 +344,7 @@ public class ChatFragment extends Fragment {
     }
 
     private void attachAccountListener(View view) {
-        DatabaseReference accountRef = FirebaseDatabase.getInstance().getReference("account");
+        DatabaseReference accountRef = reference.child("account");
         // 最初の一回のみ
         accountRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -392,7 +402,7 @@ public class ChatFragment extends Fragment {
 
     private void attachBlockListener(View view) {
         // リスナーアタッチ
-        DatabaseReference blockRef = FirebaseDatabase.getInstance().getReference("Block");
+        DatabaseReference blockRef = reference.child("Block");
         blockRef.addChildEventListener(new ChildEventListener() {
             private long attachTime = System.currentTimeMillis();
             @Override
@@ -456,45 +466,55 @@ public class ChatFragment extends Fragment {
         validateUsers(snapshotsData, view);
     }
 
-    private void validateUsers(QuerySnapshot snapshots, View view) {
+    private void validateUsers(DataSnapshot snapshots, View view) {
         if (hasTalkUsers(mUsers)) {
-            System.out.println("hasTalkUsers");
             for (String userId : mUsers) {
-                for (DocumentSnapshot documentSnapshot : snapshots) {
-                    Match match = documentSnapshot.toObject(Match.class);
-                    assert match != null;
-                    if (!mInvalidUsers.contains(match.getUser_id())) {
-                        if (userId.equals(match.getUser_id()) && !mChatList.contains(match)) {
-                            mChatList.add(match);
-                        } else if (!mUsers.contains(match.getUser_id()) && !mMatchList.contains(match)) {
-                            mMatchList.add(match);
+                for (DataSnapshot snapshot : snapshots.getChildren()) {
+                    if (snapshot.child("user1").getValue().equals(uid) || snapshot.child("user2").getValue().equals(uid)) {
+                        Match match = snapshot.getValue(Match.class);
+                        assert match != null;
+                        if (!mInvalidUsers.contains(match.getUser1()) && !mInvalidUsers.contains(match.getUser2())) {
+                            if ((userId.equals(match.getUser1()) || userId.equals(match.getUser2())) && !mChatList.contains(match)) {
+                                mChatList.add(match);
+                            } else if ((!mUsers.contains(match.getUser1()) && !mUsers.contains(match.getUser2())) && !mMatchList.contains(match)) {
+                                mMatchList.add(match);
+                            }
                         }
                     }
                 }
             }
         } else {
-            System.out.println("nohasTalkUsers");
-            for (DocumentSnapshot documentSnapshot : snapshots) {
-                Match match = documentSnapshot.toObject(Match.class);
-                assert match != null;
-                if (!mInvalidUsers.contains(match.getUser_id())) {
-                    mMatchList.add(match);
+            for (DataSnapshot snapshot : snapshots.getChildren()) {
+                if (snapshot.child("user1").getValue().equals(uid) || snapshot.child("user2").getValue().equals(uid)) {
+                    Match match = snapshot.getValue(Match.class);
+                    assert match != null;
+                    if (!mInvalidUsers.contains(match.getUser1()) && !mInvalidUsers.contains(match.getUser2())) {
+                        mMatchList.add(match);
+                    }
                 }
             }
         }
         mMatchRecyclerAdapter.notifyDataSetChanged();
 
         Collections.reverse(mChatList);
-
+        Collections.reverse(mMatchList);
+        System.out.println("リスト");
+        System.out.println(mChatList);
+        System.out.println(mMatchList);
+        System.out.println(mChatList.size());
+        System.out.println(mMatchList.size());
+        System.out.println(mMatchUsers);
         if (mMatchList.size() == 0 && mChatList.size() == 0) {
+            System.out.println("ここ");
             view.findViewById(R.id.no_match).setVisibility(View.VISIBLE);
-            view.findViewById(R.id.chat_recycler).setVisibility(View.GONE);
+            mMatchRecyclerView.setVisibility(View.GONE);
         } else {
             view.findViewById(R.id.no_match).setVisibility(View.GONE);
-            view.findViewById(R.id.chat_recycler).setVisibility(View.VISIBLE);
+            mMatchRecyclerView.setVisibility(View.VISIBLE);
         }
 
-        System.out.println("Finish updateui");
+        progressBar.setVisibility(View.GONE);
+        mMatchRecyclerView.setVisibility(View.VISIBLE);
     }
 
     private void setChatMetaData(DataSnapshot snapshot) {
@@ -534,7 +554,7 @@ public class ChatFragment extends Fragment {
             if (chat.getMessage() != null) {
                 map.put("last_message", chat.getMessage());
             } else {
-                map.put("last_message", getString(R.string.send_image));
+                map.put("last_message", getContext().getString(R.string.send_image));
             }
             map.put("time_stamp", DateTimeConverter.getSentTime(chat.getTime_stamp()));
             String json = gson.toJson(map);

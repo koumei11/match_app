@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -18,7 +19,9 @@ import androidx.viewpager.widget.ViewPager;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.tabs.TabLayout;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -37,6 +40,7 @@ import jp.gr.java_conf.datingapp.fragment.DiscoverFragment;
 import jp.gr.java_conf.datingapp.fragment.ProfileFragment;
 import jp.gr.java_conf.datingapp.notification.APIService;
 import jp.gr.java_conf.datingapp.notification.Client;
+import jp.gr.java_conf.datingapp.notification.OreoNotification;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
 public class HomeActivity extends AppCompatActivity implements ChatFragment.MessageListener {
@@ -75,7 +79,10 @@ public class HomeActivity extends AppCompatActivity implements ChatFragment.Mess
             fragmentTransaction.commit();
         }
 
+//        FirebaseAuth.getInstance().signOut();
         CloseKeyboard.setupUI(findViewById(R.id.constraint_home), this);
+        OreoNotification oreoNotification = new OreoNotification(this);
+        oreoNotification.createNotificationChannel(this);
 
         mAuth = FirebaseAuth.getInstance();
         uid = mAuth.getCurrentUser().getUid();
@@ -85,18 +92,6 @@ public class HomeActivity extends AppCompatActivity implements ChatFragment.Mess
         preferences  = getSharedPreferences("DATA", Context.MODE_PRIVATE);
         editor = preferences.edit();
         editor.clear().apply();
-        adapter = new HomeViewPagerAdapter(getSupportFragmentManager());
-        adapter.addFragment(new ProfileFragment(), "マイプロフィール");
-        adapter.addFragment(new DiscoverFragment(), "さがす");
-        adapter.addFragment(new ChatFragment(), "チャット");
-        mViewPager.setOffscreenPageLimit(2);
-        mViewPager.setAdapter(adapter);
-        mHomeTabs.setupWithViewPager(mViewPager);
-        mHomeTabs.getTabAt(0).setIcon(R.drawable.profile);
-        mHomeTabs.getTabAt(1).setIcon(R.drawable.discover);
-        mHomeTabs.getTabAt(2).setCustomView(R.layout.notification_badge);
-        badge = mHomeTabs.getTabAt(2).getCustomView().findViewById(R.id.notification_text);
-        mHomeTabs.selectTab(mHomeTabs.getTabAt(1));
         chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
         DatabaseReference myRef = database.getReference("/status/" + uid);
 
@@ -129,25 +124,65 @@ public class HomeActivity extends AppCompatActivity implements ChatFragment.Mess
             }
         });
 
-        database.getReference("Switch").child(uid).child("on").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.getValue() != null) {
-                    editor.putBoolean("switchOn", (boolean) snapshot.getValue());
-                    editor.apply();
+        if (mAuth.getCurrentUser() != null) {
+            adapter = new HomeViewPagerAdapter(getSupportFragmentManager());
+            adapter.addFragment(new ProfileFragment(), "マイプロフィール");
+            adapter.addFragment(new DiscoverFragment(), "さがす");
+            adapter.addFragment(new ChatFragment(), "チャット");
+            mViewPager.setAdapter(adapter);
+            mHomeTabs.setupWithViewPager(mViewPager);
+            mHomeTabs.getTabAt(0).setIcon(R.drawable.profile);
+            mHomeTabs.getTabAt(1).setIcon(R.drawable.discover);
+            mHomeTabs.getTabAt(2).setCustomView(R.layout.notification_badge);
+            badge = mHomeTabs.getTabAt(2).getCustomView().findViewById(R.id.notification_text);
+            mViewPager.setOffscreenPageLimit(2);
+            mHomeTabs.selectTab(mHomeTabs.getTabAt(1));
+            Map<String, Object> map = new HashMap<>();
+            map.put("on", true);
+            database.getReference("Switch").child(uid).setValue(map);
+            database.getReference("Switch").child(uid).child("on").addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    if (snapshot.getValue() != null) {
+                        editor.putBoolean("switchOn", (boolean) snapshot.getValue());
+                        editor.apply();
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+
+                }
+            });
+
+            if (getIntent() != null) {
+                if (getIntent().getIntExtra("tabPos", -1) >= 0) {
+                    mViewPager.setCurrentItem(getIntent().getIntExtra("tabPos", -1));
                 }
             }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
+            mHomeTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+                @Override
+                public void onTabSelected(TabLayout.Tab tab) {
+                    if (tab.getPosition() == 2) {
+                        if (preferences.getInt("new_match", 0) > 0) {
+                            editor.putInt("new_match", preferences.getInt("new_match", 0) - 1);
+                            editor.apply();
+                            badge.setVisibility(View.GONE);
+                        }
+                    }
+                }
 
-            }
-        });
+                @Override
+                public void onTabUnselected(TabLayout.Tab tab) {
 
-        if (getIntent() != null) {
-            if (getIntent().getIntExtra("tabPos", -1) >= 0) {
-                mViewPager.setCurrentItem(getIntent().getIntExtra("tabPos", -1));
-            }
+                }
+
+                @Override
+                public void onTabReselected(TabLayout.Tab tab) {
+
+                }
+            });
         }
     }
 
@@ -183,6 +218,11 @@ public class HomeActivity extends AppCompatActivity implements ChatFragment.Mess
     @Override
     public void onAllMessageSeen() {
         badge.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onMatchCreated() {
+        badge.setVisibility(View.VISIBLE);
     }
 
     @Override

@@ -1,6 +1,8 @@
 package jp.gr.java_conf.datingapp.fragment;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -22,6 +24,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
@@ -29,11 +32,10 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import jp.gr.java_conf.datingapp.HomeActivity;
 import jp.gr.java_conf.datingapp.R;
@@ -57,10 +59,12 @@ public class SignInFragment extends Fragment {
     private String mParam2;
 
     private EditText mEmail;
-    private EditText mPassword;
+//    private EditText mPassword;
     private FirebaseAuth mAuth;
     private FirebaseFirestore mStore;
     private CardView mLoginBtn;
+    private SharedPreferences preferences;
+    private SharedPreferences.Editor editor;
     private ConstraintLayout mLayout;
     private DatabaseReference userRef;
     private TextWatcher mTextWatcher = new TextWatcher() {
@@ -121,15 +125,17 @@ public class SignInFragment extends Fragment {
 
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         mEmail = view.findViewById(R.id.signin_email);
-        mPassword = view.findViewById(R.id.signin_password);
+//        mPassword = view.findViewById(R.id.signin_password);
         mLoginBtn = view.findViewById(R.id.signin_card_view);
         mLayout = view.findViewById(R.id.signin_constraint_layout);
         mAuth = FirebaseAuth.getInstance();
         mStore = FirebaseFirestore.getInstance();
         userRef = FirebaseDatabase.getInstance().getReference().child("Users");
+        preferences = getActivity().getApplicationContext().getSharedPreferences("DATA", Context.MODE_PRIVATE);
+        editor = preferences.edit();
 
         mEmail.addTextChangedListener(mTextWatcher);
-        mPassword.addTextChangedListener(mTextWatcher);
+//        mPassword.addTextChangedListener(mTextWatcher);
         checkFieldsForEmptyValues();
 
         LoginButton mFBLogin = view.findViewById(R.id.login_button);
@@ -141,30 +147,26 @@ public class SignInFragment extends Fragment {
             public void onClick(View view) {
                 final SignInProgressButton button = new SignInProgressButton(view);
                 button.buttonActivated();
-                if (validateEmail() && validatePassword()) {
+                if (validateEmail()) {
                     String email = mEmail.getText().toString();
-                    String password = mPassword.getText().toString();
-                    mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (task.isSuccessful()) {
-                                System.out.println("成功");
-                                changeActivity();
-                            } else {
-                                System.out.println("失敗");
-                                PlainDialog dialog = new PlainDialog(getString(R.string.no_user));
-                                assert getFragmentManager() != null;
-                                dialog.show(getFragmentManager(), "SignIn Failed.");
-                                button.buttonFinished();
-                            }
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            e.printStackTrace();
-                            button.buttonFinished();
-                        }
-                    });
+                    System.out.println("メールリンク");
+                    sendEmailLink(email, button);
+//                    String password = mPassword.getText().toString();
+//                    mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+//                        @Override
+//                        public void onComplete(@NonNull Task<AuthResult> task) {
+//                            if (task.isSuccessful()) {
+//                                System.out.println("成功");
+//                                sendEmailLink();
+//                            }
+//                        }
+//                    }).addOnFailureListener(new OnFailureListener() {
+//                        @Override
+//                        public void onFailure(@NonNull Exception e) {
+//                            e.printStackTrace();
+//                            button.buttonFinished();
+//                        }
+//                    });
                 } else {
                     button.buttonFinished();
                 }
@@ -173,41 +175,63 @@ public class SignInFragment extends Fragment {
         return view;
     }
 
-    private void changeActivity() {
-        mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-            @Override
-            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                if (!(boolean) documentSnapshot.get("account_flg")) {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("account_flg", true);
-                    mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).set(map, SetOptions.merge())
-                            .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void aVoid) {
-                                    DatabaseReference reference = FirebaseDatabase.getInstance().getReference().child("/account/" + mAuth.getCurrentUser().getUid());
-                                    Map<String, Object> map = new HashMap<>();
-                                    map.put("account_flg", true);
-                                    reference.setValue(map);
-                                    Toast.makeText(getContext(), getString(R.string.welcome_back), Toast.LENGTH_LONG).show();
-                                    Intent intent = new Intent(getContext(), HomeActivity.class);
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                    startActivity(intent);
-                                }
-                            });
-                } else {
-                    Intent intent = new Intent(getContext(), HomeActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                }
-            }
-        });
+    private void sendEmailLink(String email, SignInProgressButton button) {
+        ActionCodeSettings actionCodeSettings = ActionCodeSettings.newBuilder()
+                .setUrl(getString(R.string.deep_link))
+                .setHandleCodeInApp(true)
+                .setIOSBundleId(getString(R.string.package_name))
+                .setAndroidPackageName(
+                        getString(R.string.package_name),
+                        true,
+                        getString(R.string.minimum_sdk)
+                )
+//                .setDynamicLinkDomain(getString(R.string.deep_link))
+                .build();
+        mAuth.sendSignInLinkToEmail(email, actionCodeSettings)
+
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        System.out.println("成功!");
+                        editor.putString("email_address", email);
+                        editor.apply();
+                        System.out.println(preferences.getString("email_address", ""));
+                        button.buttonFinished();
+                    }
+                });
+//        mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+//            @Override
+//            public void onSuccess(DocumentSnapshot documentSnapshot) {
+//                if (!(boolean) documentSnapshot.get("account_flg")) {
+//                    Map<String, Object> map = new HashMap<>();
+//                    map.put("account_flg", true);
+//                    mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).set(map, SetOptions.merge())
+//                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+//                                @Override
+//                                public void onSuccess(Void aVoid) {
+//                                    DatabaseReference reference = FirebaseDatabase.getInstance().getReference().child("/account/" + mAuth.getCurrentUser().getUid());
+//                                    Map<String, Object> map = new HashMap<>();
+//                                    map.put("account_flg", true);
+//                                    reference.setValue(map);
+//                                    Toast.makeText(getContext(), getString(R.string.welcome_back), Toast.LENGTH_LONG).show();
+//                                    Intent intent = new Intent(getContext(), HomeActivity.class);
+//                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//                                    startActivity(intent);
+//                                }
+//                            });
+//                } else {
+//                    Intent intent = new Intent(getContext(), HomeActivity.class);
+//                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//                    startActivity(intent);
+//                }
+//            }
+//        });
     }
 
     private void checkFieldsForEmptyValues() {
         String email = mEmail.getText().toString();
-        String password = mPassword.getText().toString();
 
-        if (email.equals("") || password.equals("")) {
+        if (email.equals("")) {
             mLoginBtn.setEnabled(false);
             mLayout.setBackgroundColor(mLoginBtn.getResources().getColor(R.color.colorLightRed));
         } else {
@@ -228,15 +252,15 @@ public class SignInFragment extends Fragment {
         }
     }
 
-    private boolean validatePassword() {
-        String passwordInput = mPassword.getText().toString().trim();
-
-        if (passwordInput.length() < 6) {
-            mPassword.setError(getString(R.string.error_password));
-            return false;
-        } else {
-            mPassword.setError(null);
-            return true;
-        }
-    }
+//    private boolean validatePassword() {
+//        String passwordInput = mPassword.getText().toString().trim();
+//
+//        if (passwordInput.length() < 6) {
+//            mPassword.setError(getString(R.string.error_password));
+//            return false;
+//        } else {
+//            mPassword.setError(null);
+//            return true;
+//        }
+//    }
 }

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DatingApp</string>
+    <string name="app_name">Match</string>
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
@@ -69,10 +69,13 @@
     <string name="no_message">メッセージがありません。</string>
     <string name="during_chat">会話中のお相手</string>
     <string name="send_image">画像が送信されました。</string>
-    <string name="channel1">Channel1</string>
     <string name="notify_message">新規にメッセージがあった場合に通知を表示します</string>
     <string name="enter_job">職業を入力してください</string>
     <string name="new_message">新しいメッセージが届きました！</string>
+    <string name="package_name">jp.gr.java_conf.datingapp</string>
+    <string name="deep_link">https://matchdating.page.link/discover</string>
+    <string name="minimum_sdk">16</string>
+    <string name="invalid_email">メールアドレスが正しくありません。</string>
     <string-array name="address_list">
         <item>北海道</item>
         <item>青森</item>

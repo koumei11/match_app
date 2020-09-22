@@ -88,17 +88,19 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, final int position) {
         if (position != 0) {
+            String userId;
+            if (mChatList.get(position - 1).getUser1().equals(myId)) {
+                userId = mChatList.get(position - 1).getUser2();
+            } else {
+                userId = mChatList.get(position - 1).getUser1();
+            }
             ChatViewHolder chatViewHolder = (ChatViewHolder) holder;
-            ref = database.getReference("/status/" + mChatList.get(position - 1).getUser_id());
+            ref = database.getReference("/status/" + userId);
             ref.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                     UserState userState = snapshot.getValue(UserState.class);
-                    System.out.println("ユーザー");
-                    System.out.println(snapshot.getKey());
-                    System.out.println("ステート");
-                    System.out.println(snapshot.child("state").getValue());
-                    Match match = new Match(snapshot.getKey());
+                    Match match = new Match(userId, myId);
                     if (userState != null && mChatList.contains(match)) {
                         Date now = new Date();
                         long timePassed = (now.getTime() - userState.getLast_changed()) / 1000 / 60 / 60;
@@ -118,15 +120,15 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                 }
             });
 
-            showMessage(mChatList.get(position - 1).getUser_id(), chatViewHolder.mSentDate, chatViewHolder.mNewestMessage);
-            showNumberOfUnreadMessage(mChatList.get(position - 1).getUser_id(), chatViewHolder.mNotificationText);
-            mStore.collection("Users").document(mChatList.get(position - 1).getUser_id()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            showMessage(userId, chatViewHolder.mSentDate, chatViewHolder.mNewestMessage);
+            showNumberOfUnreadMessage(userId, chatViewHolder.mNotificationText);
+            mStore.collection("Users").document(userId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                 @Override
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
 
                     if (task.isSuccessful() && task.getResult() != null) {
                         Profile profile = task.getResult().toObject(Profile.class);
-                        chatViewHolder.mName.setText(mChatList.get(position - 1).getName());
+                        chatViewHolder.mName.setText(profile.getName());
                         chatViewHolder.mAddress.setText(profile.getAddress());
                         if (profile.getImg_url() != null) {
                             Glide.with(mContext).load(profile.getImg_url()).into(chatViewHolder.mImg);
@@ -148,13 +150,13 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                 public void onClick(View view) {
                     view.setEnabled(false);
                     Intent intent = new Intent(mContext, ChatActivity.class);
-                    mStore.collection("Users").document(mChatList.get(position - 1).getUser_id()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                    mStore.collection("Users").document(userId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                         @Override
                         public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                             if (task.isSuccessful() && task.getResult() != null) {
                                 Profile profile = task.getResult().toObject(Profile.class);
                                 intent.putExtra("profile", profile);
-                                intent.putExtra("doc_id", mChatList.get(position - 1).getUser_id());
+                                intent.putExtra("doc_id", userId);
                                 intent.putExtra("user_img", profile.getImg_url());
                                 intent.putExtra("user_name", profile.getName());
                                 intent.setFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
@@ -176,9 +178,7 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
                             System.out.println("はい");
-                            Map<String, Object> map = new HashMap<>();
-                            map.put("isBlock", true);
-                            blockUser(mChatList.get(position - 1).getUser_id(), map);
+                            blockUser(userId);
                         }
                     });
                     builder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
@@ -195,33 +195,40 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             });
         } else {
             MatchViewHolder matchViewHolder = (MatchViewHolder) holder;
-            if (mMatchList.size() != 0) {
-                matchViewHolder.mMatchRecyclerView.setVisibility(View.VISIBLE);
-                matchViewHolder.mPlainText.setVisibility(View.GONE);
-                matchViewHolder.mMatchRecyclerView.setHasFixedSize(true);
-                matchViewHolder.mMatchRecyclerView.setLayoutManager(new LinearLayoutManager(mContext, LinearLayoutManager.HORIZONTAL, false));
-                matchViewHolder.mMatchRecyclerView.setAdapter(matchViewHolder.mMatchRecyclerAdapter);
-            } else {
-                matchViewHolder.mMatchRecyclerView.setVisibility(View.GONE);
-                matchViewHolder.mPlainText.setVisibility(View.VISIBLE);
-            }
-
-            matchViewHolder.mSwitch.setChecked(preferences.getBoolean("switchOn", true));
-            matchViewHolder.mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                    SwitchButton isOn = new SwitchButton(compoundButton.isChecked());
-                    database.getReference("Switch").child(mAuth.getCurrentUser().getUid())
-                            .setValue(isOn);
-                    editor.putBoolean("switchOn", compoundButton.isChecked());
-                    editor.apply();
+            if (mMatchList.size() != 0 || mChatList.size() != 0) {
+                if (mMatchList.size() != 0) {
+                    matchViewHolder.view.setVisibility(View.VISIBLE);
+                    matchViewHolder.mMatchRecyclerView.setVisibility(View.VISIBLE);
+                    matchViewHolder.mPlainText.setVisibility(View.GONE);
+                    matchViewHolder.mMatchRecyclerView.setHasFixedSize(true);
+                    matchViewHolder.mMatchRecyclerView.setLayoutManager(new LinearLayoutManager(mContext, LinearLayoutManager.HORIZONTAL, false));
+                    matchViewHolder.mMatchRecyclerView.setAdapter(matchViewHolder.mMatchRecyclerAdapter);
+                } else {
+                    matchViewHolder.mMatchRecyclerView.setVisibility(View.GONE);
+                    matchViewHolder.mPlainText.setVisibility(View.VISIBLE);
                 }
-            });
 
-            if (mChatList.size() == 0) {
-                matchViewHolder.mChatText.setText("");
+                matchViewHolder.mSwitch.setChecked(preferences.getBoolean("switchOn", true));
+                matchViewHolder.mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                        SwitchButton isOn = new SwitchButton(compoundButton.isChecked());
+                        database.getReference("Switch").child(mAuth.getCurrentUser().getUid())
+                                .setValue(isOn);
+                        editor.putBoolean("switchOn", compoundButton.isChecked());
+                        editor.apply();
+                    }
+                });
+
+                if (mChatList.size() == 0) {
+                    matchViewHolder.mChatText.setText("");
+                } else {
+                    matchViewHolder.mChatText.setText(mContext.getString(R.string.during_chat));
+                }
             } else {
-                matchViewHolder.mChatText.setText(mContext.getString(R.string.during_chat));
+                System.out.println("マッチも会話もない");
+                matchViewHolder.mMatchRecyclerView.setVisibility(View.GONE);
+                matchViewHolder.view.setVisibility(View.GONE);
             }
         }
     }
@@ -243,44 +250,50 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
         }
     }
 
-    private void blockUser(String uid, Map<String, Object> block) {
-        mStore.collection("Users").document(uid).collection("Match")
-                .document(myId).set(block, SetOptions.merge())
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        mStore.collection("Users").document(myId)
-                                .collection("Match").document(uid).set(block, SetOptions.merge())
-                                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                    @Override
-                                    public void onSuccess(Void aVoid) {
-                                        Map<String, Object> map = new HashMap<>();
-                                        map.put("blocked_user_id", uid);
-                                        map.put("block_user_id", myId);
-                                        map.put("isBlock", true);
-                                        map.put("time_stamp", System.currentTimeMillis());
-                                        database.getReference("Block").push().setValue(map);
-                                        database.getReference("Chats").addListenerForSingleValueEvent(new ValueEventListener() {
-                                            @Override
-                                            public void onDataChange(@NonNull DataSnapshot snapshots) {
-                                                for (DataSnapshot snapshot : snapshots.getChildren())  {
-                                                    Chat chat = snapshot.getValue(Chat.class);
-                                                    if ((chat.getFrom().equals(myId) || chat.getFrom().equals(uid)) &&
-                                                            (chat.getTo().equals(myId) || chat.getTo().equals(uid))) {
-                                                        snapshot.getRef().removeValue();
-                                                    }
-                                                }
-                                            }
-
-                                            @Override
-                                            public void onCancelled(@NonNull DatabaseError error) {
-
-                                            }
-                                        });
-                                    }
-                                });
+    private void blockUser(String blockUser) {
+        DatabaseReference matchRef = FirebaseDatabase.getInstance().getReference().child("Match");
+        matchRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshots) {
+                for (DataSnapshot snapshot : snapshots.getChildren())  {
+                    if ((snapshot.child("user1").getValue().equals(mAuth.getCurrentUser().getUid()) && snapshot.child("user2").getValue().equals(blockUser)) ||
+                            ((snapshot.child("user1").getValue().equals(blockUser) && snapshot.child("user2").getValue().equals(mAuth.getCurrentUser().getUid()))))
+                    {
+                        if (snapshot.getKey() != null) {
+                            matchRef.child(snapshot.getKey()).child("block").setValue(true);
+                        }
                     }
-                });
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+        Map<String, Object> map = new HashMap<>();
+        map.put("blocked_user_id", blockUser);
+        map.put("block_user_id", myId);
+        map.put("isBlock", true);
+        map.put("time_stamp", System.currentTimeMillis());
+        database.getReference("Block").push().setValue(map);
+        database.getReference("Chats").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshots) {
+                for (DataSnapshot snapshot : snapshots.getChildren())  {
+                    Chat chat = snapshot.getValue(Chat.class);
+                    if ((chat.getFrom().equals(myId) || chat.getFrom().equals(blockUser)) &&
+                            (chat.getTo().equals(myId) || chat.getTo().equals(blockUser))) {
+                        snapshot.getRef().removeValue();
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 
     private void showMessage(String uid, TextView mSentDate, TextView mNewestMessage) {

@@ -19,6 +19,11 @@ import androidx.fragment.app.Fragment;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -35,6 +40,7 @@ import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.dialog.MatchDialog;
 import jp.gr.java_conf.datingapp.model.Profile;
 import jp.gr.java_conf.datingapp.model.SwipeCard;
+import jp.gr.java_conf.datingapp.notification.Data;
 import jp.gr.java_conf.datingapp.utility.MatchHandler;
 import jp.gr.java_conf.datingapp.listener.SelectedListener;
 import jp.gr.java_conf.datingapp.utility.WindowSizeGetter;
@@ -51,12 +57,14 @@ public class DiscoverFragment extends Fragment {
     private List<Profile> mProfileList;
     private TextView mNoMember;
     private SelectedListener mSelectedListener;
+    private DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
     private ProgressBar progressBar;
     private ImageButton mRejectButton;
     private ImageButton mAcceptButton;
     private static boolean rejectFlg;
     private static boolean acceptFlg;
     private int totalMember = 0;
+    private String uid;
 
     public DiscoverFragment() {
         // Required empty public constructor
@@ -92,18 +100,19 @@ public class DiscoverFragment extends Fragment {
 
         mStore = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
+        uid = mAuth.getCurrentUser().getUid();
         mProfileList = new ArrayList<>();
 
         mStore.collection("Users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> taskUsers) {
                 if (taskUsers.isSuccessful()) {
-                    mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
+                    mStore.collection("Users").document(uid)
                             .collection("Likes").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                         @Override
                         public void onComplete(@NonNull Task<QuerySnapshot> taskLikes) {
                             if (taskLikes.isSuccessful()) {
-                                mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                mStore.collection("Users").document(uid).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                                     @Override
                                     public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                                         if (task.isSuccessful()) {
@@ -115,7 +124,7 @@ public class DiscoverFragment extends Fragment {
                                             for (DocumentSnapshot documentSnapshot : taskUsers.getResult()) {
                                                 String docId = documentSnapshot.getId();
                                                 String sex = (String) documentSnapshot.get("sex");
-                                                if (!docId.equals(mAuth.getCurrentUser().getUid())
+                                                if (!docId.equals(uid)
                                                         && !sex.equals(mySex)
                                                         && !userIdList.contains(docId)
                                                         && (boolean) documentSnapshot.get("account_flg")) {
@@ -164,18 +173,37 @@ public class DiscoverFragment extends Fragment {
             public void setSwipedDocumentId(final String docId, final String name, final boolean isLike) {
                 if (isLike) {
                     totalMember--;
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("user_id", docId);
+                    reference.child("Like").child(uid).push().setValue(map);
+                    reference.child("Like").child(docId).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshots) {
+                            for (DataSnapshot snapshot : snapshots.getChildren()) {
+                                System.out.println(snapshot);
+                                System.out.println(snapshot.child("user_id").getValue());
+                                if (snapshot.child("user_id").getValue() != null && snapshot.child("user_id").getValue().equals(uid)) {
+                                    System.out.println("マッチング！！");
+                                    MatchHandler.storeMatchInDatabase(uid, docId, name, getContext());
+                                    break;
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+
+                        }
+                    });
                     mStore.collection("Users").document(docId).collection("Likes")
-                            .document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                            .document(uid).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                         @Override
                         public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                             if (task.isSuccessful()) {
-                                if (task.getResult() != null && task.getResult().getData() != null) {
-                                    MatchHandler.storeMatchInDatabase(docId, name, getContext());
-                                }
                                 Map<String, Object> map = new HashMap<>();
                                 map.put("like", true);
                                 map.put("user_id", docId);
-                                mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
+                                mStore.collection("Users").document(uid)
                                         .collection("Likes")
                                         .document(docId).set(map)
                                         .addOnCompleteListener(new OnCompleteListener<Void>() {
@@ -194,7 +222,7 @@ public class DiscoverFragment extends Fragment {
                     Map<String, Object> map = new HashMap<>();
                     map.put("user_id", docId);
                     map.put("like", false);
-                    mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
+                    mStore.collection("Users").document(uid)
                             .collection("Likes")
                             .document(docId).set(map)
                             .addOnCompleteListener(new OnCompleteListener<Void>() {

@@ -47,14 +47,18 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.gson.Gson;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 import jp.gr.java_conf.datingapp.adapter.ChatRecyclerAdapter;
+import jp.gr.java_conf.datingapp.enums.NotificationType;
 import jp.gr.java_conf.datingapp.fragment.ChatFragment;
 import jp.gr.java_conf.datingapp.model.Chat;
 import jp.gr.java_conf.datingapp.model.Profile;
@@ -102,7 +106,6 @@ public class ChatActivity extends AppCompatActivity {
     private SharedPreferences preferences;
     private SharedPreferences.Editor editor;
     private APIService apiService;
-    private boolean isNotify = true;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -338,7 +341,9 @@ public class ChatActivity extends AppCompatActivity {
     private void sendMessage(String message, String image, String myId, String toId, Uri imageUri) {
         mChatText.setText("");
         Map<String, Object> map = new HashMap<>();
-
+        long now = System.currentTimeMillis();
+        System.out.println("今の時間");
+        System.out.println(now);
         if (imageUri != null) {
             Long tsLong = System.currentTimeMillis()/1000;
             String ts = tsLong.toString();
@@ -356,7 +361,7 @@ public class ChatActivity extends AppCompatActivity {
                             map.put("from", myId);
                             map.put("to", toId);
                             map.put("isSeen", false);
-                            map.put("time_stamp", new Date().getTime());
+                            map.put("time_stamp", now);
                             if (mChatList.size() > 0) {
                                 java.sql.Date date1 = new java.sql.Date(mChatList.get(mChatList.size() - 1).getTime_stamp());
                                 java.sql.Date date2 = new java.sql.Date((Long) map.get("time_stamp"));
@@ -370,6 +375,19 @@ public class ChatActivity extends AppCompatActivity {
                             }
                             mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
                             reference.child("Chats").push().setValue(map);
+                            reference.child("Switch").child(toId).addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                    if (snapshot.child("on").getValue() != null && (boolean)snapshot.child("on").getValue()) {
+                                        sendNotification(toId, myProfile.getName(), message, downloadUri);
+                                    }
+                                }
+
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError error) {
+
+                                }
+                            });
                         }
                     });
                 }
@@ -380,7 +398,7 @@ public class ChatActivity extends AppCompatActivity {
             map.put("my_img", image);
             map.put("from", myId);
             map.put("to", toId);
-            map.put("time_stamp", new Date().getTime());
+            map.put("time_stamp", now);
             map.put("isSeen", false);
             if (mChatList.size() > 0) {
                 java.sql.Date date1 = new java.sql.Date(mChatList.get(mChatList.size() - 1).getTime_stamp());
@@ -400,24 +418,23 @@ public class ChatActivity extends AppCompatActivity {
                     System.out.println("データベース書き込み完了");
                 }
             });
-        }
-        reference.child("Switch").child(toId).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.child("on").getValue() != null && (boolean)snapshot.child("on").getValue()) {
-                    sendNotification(toId, myProfile.getName(), message);
+            reference.child("Switch").child(toId).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    if (snapshot.child("on").getValue() != null && (boolean)snapshot.child("on").getValue()) {
+                        sendNotification(toId, myProfile.getName(), message, null);
+                    }
                 }
-            }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
 
-            }
-        });
-
+                }
+            });
+        }
     }
 
-    private void sendNotification(String receiver, String userName, String message) {
+    private void sendNotification(String receiver, String userName, String message, String image) {
         DatabaseReference tokens = FirebaseDatabase.getInstance().getReference("Token");
         Query query = tokens.orderByKey().equalTo(receiver);
         query.addValueEventListener(new ValueEventListener() {
@@ -425,13 +442,15 @@ public class ChatActivity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot snapshots) {
                 for (DataSnapshot snapshot : snapshots.getChildren()) {
                     Token token = snapshot.getValue(Token.class);
-                    Data data = new Data(mAuth.getCurrentUser().getUid(), R.drawable.heart1, userName + ": " + message, getString(R.string.new_message), receiver);
+                    Data data = new Data(Objects.requireNonNull(mAuth.getCurrentUser()).getUid(), R.drawable.heart1, NotificationType.MESSAGE, userName + ": " + message, getString(R.string.new_message), receiver, image);
+                    assert token != null;
                     Sender sender = new Sender(data, token.getToken());
                     apiService.sendNotification(sender)
                             .enqueue(new Callback<MyResponse>() {
                                 @Override
-                                public void onResponse(Call<MyResponse> call, Response<MyResponse> response) {
+                                public void onResponse(@NotNull Call<MyResponse> call, @NotNull Response<MyResponse> response) {
                                     if (response.code() == 200) {
+                                        assert response.body() != null;
                                         if (response.body().success != 1) {
                                             Toast.makeText(ChatActivity.this, "Failed!", Toast.LENGTH_SHORT).show();
                                         }
