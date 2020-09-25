@@ -252,16 +252,45 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     private void blockUser(String blockUser) {
         DatabaseReference matchRef = FirebaseDatabase.getInstance().getReference().child("Match");
-        matchRef.addListenerForSingleValueEvent(new ValueEventListener() {
+//        matchRef.addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshots) {
+//                for (DataSnapshot snapshot : snapshots.getChildren())  {
+//                    if ((snapshot.child("user1").getValue().equals(mAuth.getCurrentUser().getUid()) && snapshot.child("user2").getValue().equals(blockUser)) ||
+//                            ((snapshot.child("user1").getValue().equals(blockUser) && snapshot.child("user2").getValue().equals(mAuth.getCurrentUser().getUid()))))
+//                    {
+//                        if (snapshot.getKey() != null) {
+//                            matchRef.child(snapshot.getKey()).child("block").setValue(true);
+//                        }
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//
+//            }
+//        });
+        matchRef.child(myId).child(blockUser).child("block").setValue(true);
+        matchRef.child(blockUser).child(myId).child("block").setValue(true);
+        Map<String, Object> map = new HashMap<>();
+        map.put("blocked_user_id", blockUser);
+        map.put("block_user_id", myId);
+        map.put("isBlock", true);
+        map.put("time_stamp", System.currentTimeMillis());
+        database.getReference("Block").push().setValue(map);
+        database.getReference("Chats").child(myId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshots) {
                 for (DataSnapshot snapshot : snapshots.getChildren())  {
-                    if ((snapshot.child("user1").getValue().equals(mAuth.getCurrentUser().getUid()) && snapshot.child("user2").getValue().equals(blockUser)) ||
-                            ((snapshot.child("user1").getValue().equals(blockUser) && snapshot.child("user2").getValue().equals(mAuth.getCurrentUser().getUid()))))
-                    {
-                        if (snapshot.getKey() != null) {
-                            matchRef.child(snapshot.getKey()).child("block").setValue(true);
+                    Chat chat = snapshot.getValue(Chat.class);
+                    if (chat != null) {
+                        if (chat.getFrom().equals(blockUser) ||
+                                chat.getTo().equals(blockUser)) {
+                            snapshot.getRef().removeValue();
                         }
+                    } else {
+                        System.out.println("chatはnullです");
                     }
                 }
             }
@@ -271,20 +300,18 @@ public class MatchRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
 
             }
         });
-        Map<String, Object> map = new HashMap<>();
-        map.put("blocked_user_id", blockUser);
-        map.put("block_user_id", myId);
-        map.put("isBlock", true);
-        map.put("time_stamp", System.currentTimeMillis());
-        database.getReference("Block").push().setValue(map);
-        database.getReference("Chats").addListenerForSingleValueEvent(new ValueEventListener() {
+        database.getReference("Chats").child(blockUser).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshots) {
                 for (DataSnapshot snapshot : snapshots.getChildren())  {
                     Chat chat = snapshot.getValue(Chat.class);
-                    if ((chat.getFrom().equals(myId) || chat.getFrom().equals(blockUser)) &&
-                            (chat.getTo().equals(myId) || chat.getTo().equals(blockUser))) {
-                        snapshot.getRef().removeValue();
+                    if (chat != null) {
+                        if (chat.getFrom().equals(myId) ||
+                                chat.getTo().equals(myId)) {
+                            snapshot.getRef().removeValue();
+                        }
+                    } else {
+                        System.out.println("chatはnullです");
                     }
                 }
             }

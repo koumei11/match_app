@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name">Match</string>
+    <string name="app_name">Match-com</string>
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="processing">処理中…</string>
-    <string name="signin">サインイン</string>
+    <string name="signin">メールアドレスでサインイン</string>
     <string name="signup">サインアップ</string>
     <string name="welcome">ようこそ！</string>
     <string name="error_empty_email">メールアドレスを入力してください</string>
@@ -13,6 +13,7 @@
     <string name="error_password_re">パスワードが一致しません</string>
     <string name="save">更新</string>
     <string name="add">登録</string>
+    <string name="send">送信</string>
     <string name="complete_save">プロフィールを更新しました！</string>
     <string name="logout">ログアウト</string>
     <string name="fb_sign_in_text">Facebookでサインイン</string>
@@ -75,7 +76,8 @@
     <string name="package_name">jp.gr.java_conf.datingapp</string>
     <string name="deep_link">https://matchdating.page.link/discover</string>
     <string name="minimum_sdk">16</string>
-    <string name="invalid_email">メールアドレスが正しくありません。</string>
+    <string name="invalid_auth">メールアドレス、またはパスコードが正しくありません。</string>
+    <string name="policy_url">https://www.facebook.com/notes/%E9%87%91%E5%9F%8E%E5%AE%8F%E6%98%8E/match-com%E3%81%AE%E3%83%97%E3%83%A9%E3%82%A4%E3%83%90%E3%82%B7%E3%83%BC%E3%83%9D%E3%83%AA%E3%82%B7%E3%83%BC/210766183717366/</string>
     <string-array name="address_list">
         <item>北海道</item>
         <item>青森</item>

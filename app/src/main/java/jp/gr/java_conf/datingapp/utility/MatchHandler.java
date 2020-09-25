@@ -75,7 +75,8 @@ public class MatchHandler {
                                                         map.put("user2", uid);
                                                         map.put("block", false);
                                                         map.put("time_stamp", System.currentTimeMillis());
-                                                        reference.child("Match").push().setValue(map);
+                                                        reference.child("Match").child(uid).child(docId).setValue(map);
+                                                        reference.child("Match").child(docId).child(uid).setValue(map);
                                                         reference.child("Switch").child(docId).addListenerForSingleValueEvent(new ValueEventListener() {
                                                             @Override
                                                             public void onDataChange(@NonNull DataSnapshot snapshot) {

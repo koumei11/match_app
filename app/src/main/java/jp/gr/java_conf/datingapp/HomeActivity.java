@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -53,11 +54,9 @@ public class HomeActivity extends AppCompatActivity implements ChatFragment.Mess
     private FirebaseDatabase database;
     private TextView badge;
     private FirebaseFirestore mStore;
-    private DatabaseReference reference;
     private ValueEventListener badgeListener;
     private SharedPreferences preferences;
     private SharedPreferences.Editor editor;
-    private DatabaseReference chatsRef;
     private ChildEventListener notificationListener;
     private Context context;
     private APIService apiService;
@@ -86,13 +85,13 @@ public class HomeActivity extends AppCompatActivity implements ChatFragment.Mess
 
         mAuth = FirebaseAuth.getInstance();
         uid = mAuth.getCurrentUser().getUid();
+        System.out.println("ユーザーID");
+        System.out.println(uid);
         mStore = FirebaseFirestore.getInstance();
         database = FirebaseDatabase.getInstance();
-        reference = database.getReference("Chats");
         preferences  = getSharedPreferences("DATA", Context.MODE_PRIVATE);
         editor = preferences.edit();
         editor.clear().apply();
-        chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
         DatabaseReference myRef = database.getReference("/status/" + uid);
 
         apiService = Client.getClient("https://fcm.googleapis.com/").create(APIService.class);

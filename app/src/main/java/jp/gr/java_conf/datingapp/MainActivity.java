@@ -3,12 +3,14 @@ package jp.gr.java_conf.datingapp;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -26,7 +28,6 @@ import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.AdditionalUserInfo;
@@ -38,8 +39,6 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
 
 import org.json.JSONException;
 
@@ -48,17 +47,12 @@ import java.util.Objects;
 import jp.gr.java_conf.datingapp.adapter.ViewPagerAdapter;
 import jp.gr.java_conf.datingapp.dialog.PlainDialog;
 import jp.gr.java_conf.datingapp.fragment.SignInFragment;
-import jp.gr.java_conf.datingapp.fragment.SignUpFragment;
 import jp.gr.java_conf.datingapp.utility.CloseKeyboard;
 
 
 public class MainActivity extends AppCompatActivity {
 
     private ViewPager mViewPager;
-    private TabLayout mTabs;
-    private int mTabPositionInt;
-    private SharedPreferences mTabPosition;
-    private SharedPreferences.Editor mPositionEditor;
     private ViewPagerAdapter adapter;
     private FirebaseAuth mAuth;
     private FirebaseFirestore mStore;
@@ -66,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private CallbackManager mCallbackManager;
     private Context mContext;
     private LoginButton mLoginButton;
+    private TextView privacy;
 
     ProgressBar progressBar;
 
@@ -76,22 +71,27 @@ public class MainActivity extends AppCompatActivity {
 
         mContext = this;
         userRef = FirebaseDatabase.getInstance().getReference().child("Users");
-        mTabPosition = getSharedPreferences("Data", MODE_PRIVATE);
-        mPositionEditor = mTabPosition.edit();
-        mPositionEditor.putInt("position", 10);
-        mPositionEditor.apply();
-
+        progressBar = findViewById(R.id.progressbar_main);
+        privacy = findViewById(R.id.privacy_policy);
         mCallbackManager = CallbackManager.Factory.create();
         LayoutInflater inflater = LayoutInflater.from(this);
         View view = inflater.inflate(R.layout.fb_button, null);
         mLoginButton = view.findViewById(R.id.login_button);
         setAuthCallback();
 
+        privacy.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Uri uri = Uri.parse(getString(R.string.policy_url));
+                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                startActivity(intent);
+            }
+        });
+
         mViewPager = findViewById(R.id.viewPager);
-        mTabs = findViewById(R.id.tabLayout);
+//        mTabs = findViewById(R.id.tabLayout);
         mAuth = FirebaseAuth.getInstance();
-        progressBar = findViewById(R.id.progressbar2);
-        progressBar.setVisibility(ProgressBar.INVISIBLE);
+        progressBar.setVisibility(ProgressBar.GONE);
 
         mViewPager.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         mStore = FirebaseFirestore.getInstance();
@@ -119,28 +119,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        int position = mTabPosition.getInt("position", -1);
-        if (mTabs.getTabAt(0) != null && mTabs.getTabAt(1) != null) {
-            if (position == 0) {
-                mTabs.getTabAt(0).select();
-            } else if (position == 1) {
-                mTabs.getTabAt(1).select();
-            } else {
-                mTabs.getTabAt(0).select();
-            }
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        mPositionEditor.putInt("position", mTabPositionInt);
-        mPositionEditor.commit();
-    }
-
     public void firebaseAuthWithFacebook(final AccessToken accessToken) {
         GraphRequest request = GraphRequest.newGraphPathRequest(
                 accessToken,
@@ -161,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
                                             // Insert your code here
                                             try {
                                                 int numFriends = (int)response.getJSONObject().getJSONObject("summary").get("total_count");
-                                                if (numFriends >= 10) {
+                                                if (numFriends <= 10) {
                                                     AuthCredential credential = FacebookAuthProvider.getCredential(accessToken.getToken());
                                                     mAuth.signInWithCredential(credential)
                                                             .addOnCompleteListener(MainActivity.this, new OnCompleteListener<AuthResult>() {
@@ -226,6 +204,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         if (mAuth.getCurrentUser() != null) {
             progressBar.setVisibility(ProgressBar.VISIBLE);
+            privacy.setVisibility(View.GONE);
             mStore.collection("Users").document(mAuth.getCurrentUser().getUid())
                     .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                 @Override
@@ -240,6 +219,7 @@ public class MainActivity extends AppCompatActivity {
                             startActivity(intent);
                         }
                         progressBar.setVisibility(ProgressBar.INVISIBLE);
+                        privacy.setVisibility(View.VISIBLE);
                         finish();
                     }
                 }
@@ -253,26 +233,8 @@ public class MainActivity extends AppCompatActivity {
             adapter = new ViewPagerAdapter(getSupportFragmentManager());
 
             adapter.addFragment(new SignInFragment(), "サインイン");
-            adapter.addFragment(new SignUpFragment(), "サインアップ");
             mViewPager.setAdapter(adapter);
-            mTabs.setupWithViewPager(mViewPager);
-
-            mTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-                @Override
-                public void onTabSelected(TabLayout.Tab tab) {
-                    mTabPositionInt = tab.getPosition();
-                }
-
-                @Override
-                public void onTabUnselected(TabLayout.Tab tab) {
-
-                }
-
-                @Override
-                public void onTabReselected(TabLayout.Tab tab) {
-                    System.out.println(tab);
-                }
-            });
+//            mTabs.setupWithViewPager(mViewPager);
         }
     }
 }

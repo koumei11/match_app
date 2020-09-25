@@ -161,7 +161,7 @@ public class ChatFragment extends Fragment {
             }
         });
 
-        reference.child("Match").addChildEventListener(new ChildEventListener() {
+        reference.child("Match").child(uid).addChildEventListener(new ChildEventListener() {
 
             private long attachTime = System.currentTimeMillis();
 
@@ -169,13 +169,11 @@ public class ChatFragment extends Fragment {
             public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
                 long matchTime = (long) snapshot.child("time_stamp").getValue();
                 if (matchTime > attachTime) {
-                    if (snapshot.child("user1").getValue().equals(uid) || snapshot.child("user2").getValue().equals(uid)) {
-                        retrieveMatchUserData();
-                        if (preferences.getInt("new_match", 0) <= 0) {
-                            editor.putInt("new_match", 1).apply();
-                        }
-                        mListener.onMatchCreated();
+                    retrieveMatchUserData();
+                    if (preferences.getInt("new_match", 0) <= 0) {
+                        editor.putInt("new_match", 1).apply();
                     }
+                    mListener.onMatchCreated();
                 }
             }
 
@@ -213,7 +211,7 @@ public class ChatFragment extends Fragment {
     }
 
     private void retrieveMatchUserData() {
-        reference.child("Match").orderByChild("block").equalTo(false).addListenerForSingleValueEvent(new ValueEventListener() {
+        reference.child("Match").child(uid).orderByChild("block").equalTo(false).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshots) {
                 snapshotsData = snapshots;
@@ -231,7 +229,7 @@ public class ChatFragment extends Fragment {
 
     private void createMatchUsers(DataSnapshot snapshotsData) {
         for (DataSnapshot snapshot : snapshotsData.getChildren()) {
-            if (snapshot.child("user1").getValue().equals(uid) || snapshot.child("user2").getValue().equals(uid)) {
+//            if (snapshot.child("user1").getValue().equals(uid) || snapshot.child("user2").getValue().equals(uid)) {
                 Match match = snapshot.getValue(Match.class);
                 if (match != null) {
                     if (match.getUser1().equals(uid)) {
@@ -240,7 +238,7 @@ public class ChatFragment extends Fragment {
                         mMatchUsers.add(match.getUser1());
                     }
                 }
-            }
+//            }
         }
     }
 
@@ -252,13 +250,13 @@ public class ChatFragment extends Fragment {
 
     private void attachChatListener(View view) {
         // 最初の一回のみ
-        chatsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        chatsRef.child(uid).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 int totalUnreadMessages = 0;
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     setChatMetaData(snapshot);
-                    addChatUsers(snapshot, view);
+                    addChatUsers(snapshot);
                     if (snapshot.child("to").getValue().equals(uid)
                             && !(boolean)snapshot.child("isSeen").getValue()) {
                         totalUnreadMessages += 1;
@@ -277,7 +275,7 @@ public class ChatFragment extends Fragment {
         });
 
         // リスナーアタッチ
-        chatsRef.orderByChild("time_stamp").addChildEventListener(new ChildEventListener() {
+        chatsRef.child(uid).orderByChild("time_stamp").addChildEventListener(new ChildEventListener() {
 
             private long attachTime = System.currentTimeMillis();
 
@@ -286,30 +284,25 @@ public class ChatFragment extends Fragment {
                 long receivedTime = (long) snapshot.child("time_stamp").getValue();
                 if (!snapshot.getKey().equals(tempVal))
                     setChatMetaData(snapshot);
+                    tempVal = snapshot.getKey();
                     if (receivedTime > attachTime) {
-                        if (snapshot.child("to").getValue().equals(uid)
-                                || snapshot.child("from").getValue().equals(uid)) {
-                            mListener.onMessageReceived();
-                            addChatUsers(snapshot, view);
-                            updateMatchingUsers(view);
-                        }
+                        mListener.onMessageReceived();
+                        addChatUsers(snapshot);
+                        updateMatchingUsers(view);
                     }
 
             }
 
             @Override
             public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-                if (snapshot.child("to").getValue().equals(uid)
-                        || snapshot.child("from").getValue().equals(uid)) {
-                    setChatMetaData(snapshot);
-                    updateMatchingUsers(view);
-                }
+                setChatMetaData(snapshot);
+                updateMatchingUsers(view);
             }
 
             @Override
             public void onChildRemoved(@NonNull DataSnapshot snapshot) {
                 if (!(boolean)snapshot.child("isSeen").getValue()) {
-                    chatsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    chatsRef.child(uid).addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshots) {
                             int totalUnreadMessages = 0;
@@ -438,7 +431,7 @@ public class ChatFragment extends Fragment {
         });
     }
 
-    private void addChatUsers(DataSnapshot snapshot, View view) {
+    private void addChatUsers(DataSnapshot snapshot) {
         if (snapshot.child("from").getValue() != null && snapshot.child("to").getValue() != null) {
             if (snapshot.child("from").getValue().equals(uid)) {
                 if (mUsers.contains((String)snapshot.child("to").getValue())) {
@@ -498,12 +491,6 @@ public class ChatFragment extends Fragment {
 
         Collections.reverse(mChatList);
         Collections.reverse(mMatchList);
-        System.out.println("リスト");
-        System.out.println(mChatList);
-        System.out.println(mMatchList);
-        System.out.println(mChatList.size());
-        System.out.println(mMatchList.size());
-        System.out.println(mMatchUsers);
         if (mMatchList.size() == 0 && mChatList.size() == 0) {
             System.out.println("ここ");
             view.findViewById(R.id.no_match).setVisibility(View.VISIBLE);
@@ -520,7 +507,7 @@ public class ChatFragment extends Fragment {
     private void setChatMetaData(DataSnapshot snapshot) {
         Chat chat = snapshot.getValue(Chat.class);
         editor.putInt("totalUnreadMessages", 0).apply();
-        int totalUnreadMessages = 0;
+//        int totalUnreadMessages = 0;
         assert chat != null;
         chat.setFirstMessageOfTheDay((boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
         chat.setSeen((boolean) snapshot.child("isSeen").getValue());
@@ -528,7 +515,7 @@ public class ChatFragment extends Fragment {
         map.put("message_stock", 0);
         Gson gson = new Gson();
         if (chat.getTo().equals(uid) && !chat.isSeen()) {
-            totalUnreadMessages += 1;
+//            totalUnreadMessages += 1;
             if (preferences.getString(chat.getFrom(), null) != null) {
                 String previousJson = preferences.getString(chat.getFrom(), "");
                 Map previousMap = gson.fromJson(previousJson, Map.class);
@@ -554,7 +541,7 @@ public class ChatFragment extends Fragment {
             if (chat.getMessage() != null) {
                 map.put("last_message", chat.getMessage());
             } else {
-                map.put("last_message", getContext().getString(R.string.send_image));
+                map.put("last_message", "画像が送信されました。");
             }
             map.put("time_stamp", DateTimeConverter.getSentTime(chat.getTime_stamp()));
             String json = gson.toJson(map);

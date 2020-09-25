@@ -36,7 +36,9 @@ import com.google.firebase.firestore.SetOptions;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
+import jp.gr.java_conf.datingapp.EmailSendActivity;
 import jp.gr.java_conf.datingapp.HomeActivity;
 import jp.gr.java_conf.datingapp.R;
 import jp.gr.java_conf.datingapp.dialog.PlainDialog;
@@ -118,14 +120,12 @@ public class SignInFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_sign_in, container, false);
 
         CloseKeyboard.setupUI(view.findViewById(R.id.constraint_signin), getActivity());
 
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         mEmail = view.findViewById(R.id.signin_email);
-//        mPassword = view.findViewById(R.id.signin_password);
         mLoginBtn = view.findViewById(R.id.signin_card_view);
         mLayout = view.findViewById(R.id.signin_constraint_layout);
         mAuth = FirebaseAuth.getInstance();
@@ -135,7 +135,6 @@ public class SignInFragment extends Fragment {
         editor = preferences.edit();
 
         mEmail.addTextChangedListener(mTextWatcher);
-//        mPassword.addTextChangedListener(mTextWatcher);
         checkFieldsForEmptyValues();
 
         LoginButton mFBLogin = view.findViewById(R.id.login_button);
@@ -145,28 +144,13 @@ public class SignInFragment extends Fragment {
         mLoginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                final SignInProgressButton button = new SignInProgressButton(view);
+                final SignInProgressButton button = new SignInProgressButton(view, false);
                 button.buttonActivated();
                 if (validateEmail()) {
                     String email = mEmail.getText().toString();
+                    mEmail.setText("");
                     System.out.println("メールリンク");
                     sendEmailLink(email, button);
-//                    String password = mPassword.getText().toString();
-//                    mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-//                        @Override
-//                        public void onComplete(@NonNull Task<AuthResult> task) {
-//                            if (task.isSuccessful()) {
-//                                System.out.println("成功");
-//                                sendEmailLink();
-//                            }
-//                        }
-//                    }).addOnFailureListener(new OnFailureListener() {
-//                        @Override
-//                        public void onFailure(@NonNull Exception e) {
-//                            e.printStackTrace();
-//                            button.buttonFinished();
-//                        }
-//                    });
                 } else {
                     button.buttonFinished();
                 }
@@ -185,7 +169,6 @@ public class SignInFragment extends Fragment {
                         true,
                         getString(R.string.minimum_sdk)
                 )
-//                .setDynamicLinkDomain(getString(R.string.deep_link))
                 .build();
         mAuth.sendSignInLinkToEmail(email, actionCodeSettings)
 
@@ -194,38 +177,14 @@ public class SignInFragment extends Fragment {
                     public void onComplete(@NonNull Task<Void> task) {
                         System.out.println("成功!");
                         editor.putString("email_address", email);
+                        String passCode = UUID.randomUUID().toString().split("-")[0];
+                        editor.putString("pass_code", passCode);
                         editor.apply();
-                        System.out.println(preferences.getString("email_address", ""));
                         button.buttonFinished();
+                        Intent intent = new Intent(getContext(), EmailSendActivity.class);
+                        startActivity(intent);
                     }
                 });
-//        mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-//            @Override
-//            public void onSuccess(DocumentSnapshot documentSnapshot) {
-//                if (!(boolean) documentSnapshot.get("account_flg")) {
-//                    Map<String, Object> map = new HashMap<>();
-//                    map.put("account_flg", true);
-//                    mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).set(map, SetOptions.merge())
-//                            .addOnSuccessListener(new OnSuccessListener<Void>() {
-//                                @Override
-//                                public void onSuccess(Void aVoid) {
-//                                    DatabaseReference reference = FirebaseDatabase.getInstance().getReference().child("/account/" + mAuth.getCurrentUser().getUid());
-//                                    Map<String, Object> map = new HashMap<>();
-//                                    map.put("account_flg", true);
-//                                    reference.setValue(map);
-//                                    Toast.makeText(getContext(), getString(R.string.welcome_back), Toast.LENGTH_LONG).show();
-//                                    Intent intent = new Intent(getContext(), HomeActivity.class);
-//                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//                                    startActivity(intent);
-//                                }
-//                            });
-//                } else {
-//                    Intent intent = new Intent(getContext(), HomeActivity.class);
-//                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//                    startActivity(intent);
-//                }
-//            }
-//        });
     }
 
     private void checkFieldsForEmptyValues() {
@@ -251,16 +210,4 @@ public class SignInFragment extends Fragment {
             return true;
         }
     }
-
-//    private boolean validatePassword() {
-//        String passwordInput = mPassword.getText().toString().trim();
-//
-//        if (passwordInput.length() < 6) {
-//            mPassword.setError(getString(R.string.error_password));
-//            return false;
-//        } else {
-//            mPassword.setError(null);
-//            return true;
-//        }
-//    }
 }

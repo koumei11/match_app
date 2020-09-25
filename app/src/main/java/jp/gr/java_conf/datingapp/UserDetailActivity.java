@@ -81,7 +81,6 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
     private FirebaseAuth mAuth;
     private DatabaseReference ref;
     private FirebaseDatabase database;
-    private DatabaseReference chatsRef;
     private ChildEventListener notificationListener;
     private Context context;
     private SharedPreferences preferences;
@@ -122,7 +121,6 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
         online = findViewById(R.id.online_detail);
         mLastSeen = findViewById(R.id.last_seen);
         indicator = findViewById(R.id.indicator);
-        chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
         mAuth = FirebaseAuth.getInstance();
         mStore = FirebaseFirestore.getInstance();
 
@@ -518,6 +516,5 @@ public class UserDetailActivity extends AppCompatActivity implements AppBarLayou
     @Override
     public void onPause() {
         super.onPause();
-//        chatsRef.removeEventListener(notificationListener);
     }
 }

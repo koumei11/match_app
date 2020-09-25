@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="cursive"
             android:gravity="center_horizontal"
-            android:text="Match"
+            android:text="Match-com"
             android:textAlignment="center"
             android:textColor="#E50914"
             android:textSize="24sp"
@@ -30,7 +30,7 @@
 
         <ImageView
             android:id="@+id/imageView"
-            android:layout_width="100dp"
+            android:layout_width="150dp"
             android:layout_height="100dp"
             app:srcCompat="@drawable/heart1" />
     </LinearLayout>

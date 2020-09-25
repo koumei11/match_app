@@ -14,12 +14,14 @@ public class SignInProgressButton {
     private ConstraintLayout layout;
     private ProgressBar progressBar;
     private TextView textView;
+    private boolean isEmail;
 
-    public SignInProgressButton(View view) {
+    public SignInProgressButton(View view, boolean isEmail) {
         cardView = view.findViewById(R.id.signin_card_view);
         layout = view.findViewById(R.id.signin_constraint_layout);
         progressBar = view.findViewById(R.id.signin_progressBar);
         textView = view.findViewById(R.id.signin_textView);
+        this.isEmail = isEmail;
     }
 
     public void buttonActivated() {
@@ -33,6 +35,10 @@ public class SignInProgressButton {
         cardView.setEnabled(true);
         layout.setBackgroundColor(cardView.getResources().getColor(R.color.colorRed));
         progressBar.setVisibility(View.GONE);
-        textView.setText(R.string.signin);
+        if (isEmail) {
+            textView.setText(R.string.send);
+        } else {
+            textView.setText(R.string.signin);
+        }
     }
 }

@@ -79,6 +79,7 @@ public class ChatActivity extends AppCompatActivity {
     private static final int REQUEST_CODE2 = 200;
     private RecyclerView mChatRecyclerView;
     private FirebaseAuth mAuth;
+    private String uid;
     private FirebaseFirestore mStore;
     private Toolbar mToolbar;
     private CircleImageView mCircleImageView;
@@ -134,6 +135,7 @@ public class ChatActivity extends AppCompatActivity {
         mLibrary = findViewById(R.id.imageLibrary);
         mSend = findViewById(R.id.chat_btn);
         mAuth = FirebaseAuth.getInstance();
+        uid = mAuth.getCurrentUser().getUid();
         mStore = FirebaseFirestore.getInstance();
         mStorage = FirebaseStorage.getInstance().getReference();
         reference = FirebaseDatabase.getInstance().getReference();
@@ -171,7 +173,7 @@ public class ChatActivity extends AppCompatActivity {
 
         readMessage(toId, userProfile);
 
-        mStore.collection("Users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        mStore.collection("Users").document(uid).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 if (task.isSuccessful() && task.getResult() != null) {
@@ -250,7 +252,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (!mChatText.getText().toString().isEmpty()) {
-                    sendMessage(mChatText.getText().toString(), myImg, mAuth.getCurrentUser().getUid(), toId, null);
+                    sendMessage(mChatText.getText().toString(), myImg, uid, toId, null);
                 }
             }
         });
@@ -276,18 +278,18 @@ public class ChatActivity extends AppCompatActivity {
         if (requestCode == REQUEST_CODE) {
             if (data != null) {
                 final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
-                sendMessage(null, myImg, mAuth.getCurrentUser().getUid(), toId, imageUri);
+                sendMessage(null, myImg, uid, toId, imageUri);
             }
         } else if (requestCode == REQUEST_CODE2) {
             if (data != null) {
                 final Uri imageUri = Uri.parse(data.getStringExtra("image_uri"));
-                sendMessage(null, myImg, mAuth.getCurrentUser().getUid(), toId, imageUri);
+                sendMessage(null, myImg, uid, toId, imageUri);
             }
         }
     }
 
     private void readMessage(String toId, Profile profile) {
-        messageReadListener = reference.child("Chats").addValueEventListener(new ValueEventListener() {
+        messageReadListener = reference.child("Chats").child(uid).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshots) {
                 mChatList.clear();
@@ -296,16 +298,12 @@ public class ChatActivity extends AppCompatActivity {
                 for (DataSnapshot snapshot : snapshots.getChildren()) {
                     Chat chat = snapshot.getValue(Chat.class);
                     if (chat != null) {
-                        if ((chat.getFrom().equals(mAuth.getCurrentUser().getUid()) || chat.getFrom().equals(toId)) &&
-                                (chat.getTo().equals(mAuth.getCurrentUser().getUid()) || chat.getTo().equals(toId))) {
+                        if ((chat.getFrom().equals(toId) || chat.getTo().equals(toId))) {
                             chat.setFirstMessageOfTheDay((boolean) snapshot.child("isFirstMessageOfTheDay").getValue());
                             chat.setProfile(profile);
-                            if (chat.getTo().equals(mAuth.getCurrentUser().getUid()) && !(boolean) snapshot.child("isSeen").getValue()) {
-                                Map<String, Object> map = Chat.toMap(chat);
-                                Map<String, Object> chatUpdates = new HashMap<>();
-                                map.put("isSeen", true);
-                                chatUpdates.put(snapshot.getKey(), map);
-                                reference.child("Chats").updateChildren(chatUpdates);
+                            if (chat.getTo().equals(uid) && !(boolean) snapshot.child("isSeen").getValue()) {
+                                snapshot.getRef().child("isSeen").setValue(true);
+                                reference.child("Chats").child(toId).child(Objects.requireNonNull(snapshot.getKey())).child("isSeen").setValue(true);
                                 chat.setSeen(true);
                             } else {
                                 chat.setSeen((boolean) snapshot.child("isSeen").getValue());
@@ -374,7 +372,15 @@ public class ChatActivity extends AppCompatActivity {
                                 map.put("isFirstMessageOfTheDay", true);
                             }
                             mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
-                            reference.child("Chats").push().setValue(map);
+                            reference.child("Chats").child(myId).push().setValue(map, new DatabaseReference.CompletionListener() {
+                                @Override
+                                public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference ref) {
+                                    String uniqueKey = ref.getKey();
+                                    if (uniqueKey != null) {
+                                        reference.child("Chats").child(toId).child(uniqueKey).setValue(map);
+                                    }
+                                }
+                            });
                             reference.child("Switch").child(toId).addListenerForSingleValueEvent(new ValueEventListener() {
                                 @Override
                                 public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -412,12 +418,16 @@ public class ChatActivity extends AppCompatActivity {
                 map.put("isFirstMessageOfTheDay", true);
             }
             mChatRecyclerView.smoothScrollToPosition(mChatRecyclerAdapter.getItemCount());
-            reference.child("Chats").push().setValue(map).addOnSuccessListener(new OnSuccessListener<Void>() {
+            reference.child("Chats").child(myId).push().setValue(map, new DatabaseReference.CompletionListener() {
                 @Override
-                public void onSuccess(Void aVoid) {
-                    System.out.println("データベース書き込み完了");
+                public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference ref) {
+                    String uniqueKey = ref.getKey();
+                    if (uniqueKey != null) {
+                        reference.child("Chats").child(toId).child(uniqueKey).setValue(map);
+                    }
                 }
             });
+
             reference.child("Switch").child(toId).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -507,6 +517,6 @@ public class ChatActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         System.out.println("onPause");
-        reference.child("Chats").removeEventListener(messageReadListener);
+        reference.child("Chats").child(uid).removeEventListener(messageReadListener);
     }
 }
